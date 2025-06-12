@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/PR-SVG-20010719/DTD/svg10.dtd">
+<svg width="98cm" height="46cm" viewBox="-241 -221 1956 918" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <g>
+    <rect style="fill: #ffffff" x="-200" y="280" width="348.8" height="28"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="-200" y="280" width="348.8" height="28"/>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="-25.6" y="299">i2cObj </text>
+    <rect style="fill: #ffffff" x="-200" y="308" width="348.8" height="36"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="-200" y="308" width="348.8" height="36"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="-197" y="322">+data[32]:  uint8_t</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="-197" y="338">+size: size_t</text>
+    <rect style="fill: #ffffff" x="-200" y="344" width="348.8" height="20"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="-200" y="344" width="348.8" height="20"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="-197" y="358">+getResponse(responseSize:size_t</text>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="179.228" y="-136.712" width="425.8" height="28"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="179.228" y="-136.712" width="425.8" height="28"/>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="392.128" y="-117.712">ScreenManager</text>
+    <rect style="fill: #ffffff" x="179.228" y="-108.712" width="425.8" height="84"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="179.228" y="-108.712" width="425.8" height="84"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="-94.7118">-screens: Screen[]</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="-78.7118">-activeScreen: Screen*</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="-62.7118">-currentScreen: ScreenEnum</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="-46.7118">-refresh: Rect2</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="-30.7118">+keyReturn: int</text>
+    <rect style="fill: #ffffff" x="179.228" y="-24.7118" width="425.8" height="212"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="179.228" y="-24.7118" width="425.8" height="212"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="-10.7118">+setActiveScreen(id:int)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="5.2882">+getActiveScreen(): Screen*</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="21.2882">+registerFactory(id:ScreenEnum,func:ScreenFactoryFunc)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="37.2882">+update(deltaTimeMS:uint16_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="53.2882">+draw(display:Display*)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="69.2882">+keyPressed(key:uint8_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="85.2882">+keyDown(key:uint8_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="101.288">+keyReleased(key:uint8_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="117.288">+nextScreen()</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="133.288">+previousScreen()</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="149.288">+setRefreshRect(refRect:Rect2)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="165.288">+disableRefresh()</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="182.228" y="181.288">+needRefresh()</text>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="720" y="-120" width="348.8" height="28"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="720" y="-120" width="348.8" height="28"/>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="894.4" y="-101">Screen</text>
+    <rect style="fill: #ffffff" x="720" y="-92" width="348.8" height="36"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="720" y="-92" width="348.8" height="36"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="723" y="-78">+screenId: uint8_t = 0</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="723" y="-62">+refresh: Rect2</text>
+    <rect style="fill: #ffffff" x="720" y="-56" width="348.8" height="84"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="720" y="-56" width="348.8" height="84"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="723" y="-42">+draw(display:Display)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="723" y="-26">+update(deltaTimeMS:uint16_t): virtual void </text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="723" y="-10">+keyPressed(key:uint8_t): virtual int</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="723" y="6">+keyReleased(key:uint8_t): virtual int</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="723" y="22">+keyDown(uint8_t key:uint8_t): virtual int</text>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="1420" y="-140" width="241" height="28"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1420" y="-140" width="241" height="28"/>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="1540.5" y="-121">Widget</text>
+    <rect style="fill: #ffffff" x="1420" y="-112" width="241" height="68"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1420" y="-112" width="241" height="68"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1423" y="-98">+boundingBox: Rect2</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1423" y="-82">+selected: bool = false</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1423" y="-66">+label: std::string</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1423" y="-50">+widgetType: WidgetType</text>
+    <rect style="fill: #ffffff" x="1420" y="-44" width="241" height="84"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1420" y="-44" width="241" height="84"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1423" y="-30">+activate(): virtual void </text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1423" y="-14">+isSelectable(): virtual bool </text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1423" y="2">+setSelected(sel:bool)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1423" y="18">+getWidgetType()(): WidgetType</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1423" y="34">+draw(display:Display)</text>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="1480" y="360" width="187.1" height="44"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1480" y="360" width="187.1" height="44"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:middle;font-family:monospace;font-style:normal;font-weight:normal" x="1573.55" y="376">&lt;&lt;Widget&gt;&gt;</text>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="1573.55" y="395">Label</text>
+    <rect style="fill: #ffffff" x="1480" y="404" width="187.1" height="20"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1480" y="404" width="187.1" height="20"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1483" y="418">+text: String</text>
+    <rect style="fill: #ffffff" x="1480" y="424" width="187.1" height="36"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1480" y="424" width="187.1" height="36"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1483" y="438">+draw(display:Display*)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1483" y="454">+activate()</text>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="660" y="260" width="487.4" height="28"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="660" y="260" width="487.4" height="28"/>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="903.7" y="279">Display</text>
+    <rect style="fill: #ffffff" x="660" y="288" width="487.4" height="84"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="660" y="288" width="487.4" height="84"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="302">+frameBuffer: FrameBuffer</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="318">+spiBaurd: uint = 5*1000*100</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="334">-dma_tx: uint</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="350">-c: dma_channel_config</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="366">-needRefresh: bool</text>
+    <rect style="fill: #ffffff" x="660" y="372" width="487.4" height="292"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="660" y="372" width="487.4" height="292"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="386">+setRefresh(refr:bool )</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="402">+setupIO()</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="418">+write_byte(dat:uint8_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="434">+sendCommand(cmd:uint8_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="450">+initHardware()</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="466">+clearScr()</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="482">+clearBg()</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="498">+drawPixel(x:uint8_t ,y:uint8_t ,colour:uint8_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="514">+update()</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="530">+clear(c:uint8_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="546">+setPixel(pos:Vec2,c:uint8_t ,alpha:uint8_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="562">+setInverted(inv:bool)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="578">+drawBitmapRow(pos:Vec2,width:int,c:uint8_t*)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="594">+fillRect(rect:Rect2,c:uint8_t,alpha:uint8_t=255)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="610">+hLine(pos:Vec2,width:int ,c:uint8_t ,alpha = 255:uint8_t=255)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="626">+vLine(pos:Vec2,height:int,c:uint8_t,alpha = 255:uint8_t=255)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="642">+rect(rect:Rect2 ,c:uint8_t,alpha:uint8_t=255)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="663" y="658">+line(p0:Vec2,p1:Vec2,c:uint8_t,alpha:uint8_t=255)</text>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="1540.5,58.2361 1540.5,77 1459,77 1459,382 1480,382 "/>
+    <polygon style="fill: #ffffff" points="1548.5,58.2361 1540.5,42.2361 1532.5,58.2361 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="1548.5,58.2361 1540.5,42.2361 1532.5,58.2361 "/>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="200" y="580" width="356.5" height="28"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="200" y="580" width="356.5" height="28"/>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="378.25" y="599">FrameBuffer</text>
+    <rect style="fill: #ffffff" x="200" y="608" width="356.5" height="20"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="200" y="608" width="356.5" height="20"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="203" y="622">+buffer: uint8_t*</text>
+    <rect style="fill: #ffffff" x="200" y="628" width="356.5" height="68"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="200" y="628" width="356.5" height="68"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="203" y="642">+getBuffer(): uint8_t*</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="203" y="658">+setPixel(pos:Vec2 ,c:uint8_t ,alpha:uint8_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="203" y="674">+drawBitmapRow(pos:Vec2,width:int,c:uint8_t*)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="203" y="690">+clear(c:uint8_t )</text>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="634.828,558 378.25,558 378.25,580 "/>
+    <polygon style="fill: #000000" points="660,558 646,562.8 632,558 646,553.2 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="660,558 646,562.8 632,558 646,553.2 "/>
+    <text font-size="12.7998" style="fill: #000000;text-anchor:middle;font-family:monospace;font-style:normal;font-weight:normal" x="519.125" y="555"></text>
+    <text font-size="12.7998" style="fill: #000000;text-anchor:end;font-family:monospace;font-style:normal;font-weight:normal" x="628" y="555"></text>
+    <text font-size="12.7998" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="382.25" y="576"></text>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="1386.17,-118 1399,-118 1399,-126 1420,-126 "/>
+    <polygon style="fill: #ffffff" points="1361,-118 1375,-122.8 1389,-118 1375,-113.2 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="1361,-118 1375,-122.8 1389,-118 1375,-113.2 "/>
+    <text font-size="12.7998" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1401" y="-125"></text>
+    <text font-size="12.7998" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1393" y="-121"></text>
+    <text font-size="12.7998" style="fill: #000000;text-anchor:end;font-family:monospace;font-style:normal;font-weight:normal" x="1416" y="-129"></text>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="630.2,-122.712 669.514,-122.712 669.514,-106 720,-106 "/>
+    <polygon style="fill: #ffffff" points="605.028,-122.712 619.028,-127.512 633.028,-122.712 619.028,-117.912 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="605.028,-122.712 619.028,-127.512 633.028,-122.712 619.028,-117.912 "/>
+    <text font-size="12.7998" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="671.514" y="-117.356"></text>
+    <text font-size="12.7998" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="637.028" y="-125.712"></text>
+    <text font-size="12.7998" style="fill: #000000;text-anchor:end;font-family:monospace;font-style:normal;font-weight:normal" x="716" y="-109"></text>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="1480" y="120" width="233.3" height="44"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1480" y="120" width="233.3" height="44"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:middle;font-family:monospace;font-style:normal;font-weight:normal" x="1596.65" y="136">&lt;&lt;Widget&gt;&gt;</text>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="1596.65" y="155">Button</text>
+    <rect style="fill: #ffffff" x="1480" y="164" width="233.3" height="84"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1480" y="164" width="233.3" height="84"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1483" y="178">-buttSize: Size2</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1483" y="194">-buttonPos: Vec2</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1483" y="210">-butRect: Rect2</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1483" y="226">-buttWidth: uint8_t = 40</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1483" y="242">+caption: std::string</text>
+    <rect style="fill: #ffffff" x="1480" y="248" width="233.3" height="68"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1480" y="248" width="233.3" height="68"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1483" y="262">+draw(display:Display)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1483" y="278">-buttonGraphic(disp:Display*)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1483" y="294">+isSelectable(): bool</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1483" y="310">+activate()</text>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="1540.5,58.2361 1540.5,88 1596.65,88 1596.65,120 "/>
+    <polygon style="fill: #ffffff" points="1548.5,58.2361 1540.5,42.2361 1532.5,58.2361 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="1548.5,58.2361 1540.5,42.2361 1532.5,58.2361 "/>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="894.4,28 894.4,215.136 903.7,215.136 903.7,253.295 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="898.7,240.647 903.7,256.647 908.7,240.647 "/>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="393.444,273.844 393.444,234.566 392.128,234.566 392.128,193.993 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="397.128,206.641 392.128,190.641 387.128,206.641 "/>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="207.496" y="422.054" width="348.8" height="44"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="207.496" y="422.054" width="348.8" height="44"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:middle;font-family:monospace;font-style:normal;font-weight:normal" x="381.896" y="438.054">&lt;&lt;i2cObj&gt;&gt;</text>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="381.896" y="457.054">CommandDrawPixel</text>
+    <rect style="fill: #ffffff" x="207.496" y="466.054" width="348.8" height="8"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="207.496" y="466.054" width="348.8" height="8"/>
+    <rect style="fill: #ffffff" x="207.496" y="474.054" width="348.8" height="36"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="207.496" y="474.054" width="348.8" height="36"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="210.496" y="488.054">+getResponse(responseSize:size_t</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="210.496" y="504.054">+CommandDrawPixel(responseSize:size_t</text>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="203.644" y="273.844" width="379.6" height="44"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="203.644" y="273.844" width="379.6" height="44"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:middle;font-family:monospace;font-style:normal;font-weight:normal" x="393.444" y="289.844">&lt;&lt;i2cObj&gt;&gt;</text>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="393.444" y="308.844">ChangeScreen</text>
+    <rect style="fill: #ffffff" x="203.644" y="317.844" width="379.6" height="8"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="203.644" y="317.844" width="379.6" height="8"/>
+    <rect style="fill: #ffffff" x="203.644" y="325.844" width="379.6" height="36"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="203.644" y="325.844" width="379.6" height="36"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="206.644" y="339.844">+ChangeScreen(srcData:const uint8_t*,len:size_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="206.644" y="355.844">+getResponse(responseSize:size_t</text>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="556.296,444.054 604.148,444.054 604.148,430 653.295,430 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="640.647,435 656.647,430 640.647,425 "/>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="-25.6,364 -95.3848,364 -95.3848,466.054 199.786,466.054 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="187.139,471.054 203.139,466.054 187.139,461.054 "/>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="148.8,334 142.203,334 142.203,335.844 196.939,335.844 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="184.291,340.844 200.291,335.844 184.291,330.844 "/>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="-180" y="-120" width="294.9" height="28"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="-180" y="-120" width="294.9" height="28"/>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="-32.55" y="-101">KeyBoard</text>
+    <rect style="fill: #ffffff" x="-180" y="-92" width="294.9" height="20"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="-180" y="-92" width="294.9" height="20"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="-177" y="-78">-prevKey: uint8_t</text>
+    <rect style="fill: #ffffff" x="-180" y="-72" width="294.9" height="20"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="-180" y="-72" width="294.9" height="20"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="-177" y="-58">+checkKeyState(screen:ScreenManager*)</text>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="115.909,-86 143.569,-86 143.569,-82.7118 172.523,-82.7118 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="159.876,-77.7118 175.876,-82.7118 159.876,-87.7118 "/>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="1120" y="-140" width="241" height="44"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1120" y="-140" width="241" height="44"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:middle;font-family:monospace;font-style:normal;font-weight:normal" x="1240.5" y="-124">&lt;&lt;Screen&gt;&gt;</text>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="1240.5" y="-105">TestScreen</text>
+    <rect style="fill: #ffffff" x="1120" y="-96" width="241" height="20"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1120" y="-96" width="241" height="20"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1123" y="-82">-widgets: std::vector&lt;Widget*&gt;</text>
+    <rect style="fill: #ffffff" x="1120" y="-76" width="241" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1120" y="-76" width="241" height="100"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1123" y="-62">+addWidget(widget:Widget*)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1123" y="-46">+update(deltaTimeMS:uint16_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1123" y="-30">+draw(display:Display*)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1123" y="-14">+keyPressed(key:uint8_t)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1123" y="2">+keyReleased(key:uint8_t )</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1123" y="18">+keyDown(key:uint8_t)</text>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="1200" y="340" width="241" height="44"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1200" y="340" width="241" height="44"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:middle;font-family:monospace;font-style:normal;font-weight:normal" x="1320.5" y="356">&lt;&lt;Widget&gt;&gt;</text>
+    <text font-size="16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="1320.5" y="375">Edit</text>
+    <rect style="fill: #ffffff" x="1200" y="384" width="241" height="132"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1200" y="384" width="241" height="132"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="398">-buttSize: Size2</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="414">-buttonPos: Vec2</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="430">-butRect: Rect2</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="446">-buttWidth: const uint8_t = 40</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="462">-active: bool</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="478">-minValue: int</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="494">-maxValue: int</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="510">+value: int</text>
+    <rect style="fill: #ffffff" x="1200" y="516" width="241" height="148"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="1200" y="516" width="241" height="148"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="530">+getActive(): bool</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="546">+setActive(atv:bool)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="562">+setMin(mnVal:int )</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="578">+setMax(mxVal:int)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="594">+getValue()(): int</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="610">+setValue(val:int )</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="626">+isSelectable(): bool</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="642">+draw(display:Display*)</text>
+    <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:monospace;font-style:normal;font-weight:normal" x="1203" y="658">+activate()</text>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="1540.5,58.2361 1540.5,80 1320.5,80 1320.5,340 "/>
+    <polygon style="fill: #ffffff" points="1548.5,58.2361 1540.5,42.2361 1532.5,58.2361 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="1548.5,58.2361 1540.5,42.2361 1532.5,58.2361 "/>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="760" y="-220" width="288.9" height="38"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="760" y="-220" width="288.9" height="38"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="904.45" y="-197.1">
+      <tspan x="904.45" y="-197.1">registerAllScreens(ScreenManager&amp; mgr)</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="-240" y="100" width="396.7" height="38"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="-240" y="100" width="396.7" height="38"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="-41.65" y="122.9">
+      <tspan x="-41.65" y="122.9">i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event)</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="-200" y="200" width="552" height="38"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="-200" y="200" width="552" height="38"/>
+    <text font-size="12.8" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="76" y="222.9">
+      <tspan x="76" y="222.9">createCommandObject(uint8_t commandId, const uint8_t* data, size_t len):i2cobj*</tspan>
+    </text>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="-41.65,138 -41.65,165 76,165 76,193.295 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="71,180.647 76,196.647 81,180.647 "/>
+  </g>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="76,238 76,254.497 -25.6,254.497 -25.6,272.29 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="-30.6,259.642 -25.6,275.642 -20.6,259.642 "/>
+  </g>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="-41.65" y="119">
+    <tspan x="-41.65" y="119"></tspan>
+  </text>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="904.45" y="-201">
+    <tspan x="904.45" y="-201"></tspan>
+  </text>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="1048.9,-201 1240.5,-201 1240.5,-140 "/>
+  <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="760,-201 392.128,-201 392.128,-136.712 "/>
+</svg>

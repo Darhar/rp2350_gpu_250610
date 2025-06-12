@@ -1,0 +1,626 @@
+
+-------------- Reusable UI Screen Manager suggested by chatgpt ---------------
+#include <cstdio>
+#include <cstdint>
+
+// Type alias for callback function signature
+typedef void (*ScreenCallback)(void* context, int8_t screenId, uint8_t key);
+
+// ===== Abstract Screen Interface =====
+class Screen {
+protected:
+    ScreenCallback callback;
+    void* context;
+
+public:
+    Screen(ScreenCallback cb, void* ctx) : callback(cb), context(ctx) {}
+    virtual ~Screen() {}
+
+    virtual void draw() = 0;
+    virtual void keyPressed(uint8_t key) = 0;
+};
+
+// ===== Example Screen: SettingsScreen =====
+class SettingsScreen : public Screen {
+private:
+    uint8_t option;
+
+public:
+    SettingsScreen(ScreenCallback cb, void* ctx, uint8_t opt)
+        : Screen(cb, ctx), option(opt) {}
+
+    void draw() override {
+        printf("[SettingsScreen] Drawing option %d\n", option);
+    }
+
+    void keyPressed(uint8_t key) override {
+        printf("[SettingsScreen] Key pressed: %d\n", key);
+        if (callback) {
+            callback(context, 1, key);  // screen ID = 1
+        }
+    }
+};
+
+// ===== ScreenManager to Switch and Forward =====
+class ScreenManager {
+private:
+    Screen* currentScreen = nullptr;
+
+public:
+    void setScreen(Screen* screen) {
+        if (currentScreen) {
+            delete currentScreen;
+        }
+        currentScreen = screen;
+        currentScreen->draw();
+    }
+
+    void sendKey(uint8_t key) {
+        if (currentScreen) {
+            currentScreen->keyPressed(key);
+        }
+    }
+
+    ~ScreenManager() {
+        if (currentScreen) delete currentScreen;
+    }
+};
+
+// ===== Sample App Context and Callback =====
+struct AppContext {
+    const char* appName;
+    ScreenManager* screenMgr;
+};
+
+void backHandler(void* ctx, int8_t screenId, uint8_t key) {
+    AppContext* appCtx = static_cast<AppContext*>(ctx);
+    printf("Callback from screen %d, key %d (app: %s)\n", screenId, key, appCtx->appName);
+
+    // Example: go back to another screen or quit
+    if (key == 0) {
+        printf("[App] Returning to main screen\n");
+        // You could switch to another screen here
+    }
+}
+
+// ===== Main =====
+int main() {
+    ScreenManager manager;
+
+    AppContext context = {
+        .appName = "MyApp",
+        .screenMgr = &manager
+    };
+
+    // Load a screen
+    manager.setScreen(new SettingsScreen(backHandler, &context, 2));
+
+    // Simulate a key press
+    manager.sendKey(0);
+    manager.sendKey(1);
+
+    return 0;
+}
+
+---------second screen and dynamic switching ------------
+#include <cstdio>
+#include <cstdint>
+
+// Type alias for callback
+typedef void (*ScreenCallback)(void* context, int8_t screenId, uint8_t key);
+
+// === Base Screen Interface ===
+class Screen {
+protected:
+    ScreenCallback callback;
+    void* context;
+
+public:
+    Screen(ScreenCallback cb, void* ctx) : callback(cb), context(ctx) {}
+    virtual ~Screen() {}
+
+    virtual void draw() = 0;
+    virtual void keyPressed(uint8_t key) = 0;
+};
+
+// === ScreenManager ===
+class ScreenManager {
+private:
+    Screen* currentScreen = nullptr;
+
+public:
+    void setScreen(Screen* screen) {
+        if (currentScreen) {
+            delete currentScreen;
+        }
+        currentScreen = screen;
+        currentScreen->draw();
+    }
+
+    void sendKey(uint8_t key) {
+        if (currentScreen) {
+            currentScreen->keyPressed(key);
+        }
+    }
+
+    ~ScreenManager() {
+        if (currentScreen) delete currentScreen;
+    }
+};
+
+// === Application Context ===
+struct AppContext {
+    const char* appName;
+    ScreenManager* screenMgr;
+};
+
+// === HomeScreen ===
+class HomeScreen : public Screen {
+public:
+    HomeScreen(ScreenCallback cb, void* ctx) : Screen(cb, ctx) {}
+
+    void draw() override {
+        printf("[HomeScreen] Welcome! Press 1 for Settings\n");
+    }
+
+    void keyPressed(uint8_t key) override {
+        if (callback) {
+            callback(context, 0, key); // screen ID = 0
+        }
+    }
+};
+
+// === SettingsScreen ===
+class SettingsScreen : public Screen {
+private:
+    uint8_t option;
+
+public:
+    SettingsScreen(ScreenCallback cb, void* ctx, uint8_t opt)
+        : Screen(cb, ctx), option(opt) {}
+
+    void draw() override {
+        printf("[SettingsScreen] Settings Option: %d
+
+=========== Add a amenu ==============
+
+#include <cstdint>
+
+class Menu {
+private:
+    const char* items[4];    // Fixed size for simplicity and memory efficiency
+    int selected = 0;
+    int numItems;
+
+public:
+    // Constructor with fixed items
+    Menu(const char* item1, const char* item2, const char* item3, const char* item4) {
+        items[0] = item1;
+        items[1] = item2;
+        items[2] = item3;
+        items[3] = item4;
+        numItems = 4;  // Hardcoded to 4 items
+    }
+
+    void draw() const {
+        printf("[Menu]\n");
+        for (int i = 0; i < numItems; ++i) {
+            if (i == selected) {
+                printf(" > %s\n", items[i]);
+            } else {
+                printf("   %s\n", items[i]);
+            }
+        }
+    }
+
+    void moveUp() {
+        if (selected > 0) {
+            selected--;
+        }
+    }
+
+    void moveDown() {
+        if (selected < numItems - 1) {
+            selected++;
+        }
+    }
+
+    int getSelectedIndex() const {
+        return selected;
+    }
+
+    const char* getSelectedItem() const {
+        return items[selected];
+    }
+
+    int getSize() const {
+        return numItems;
+    }
+};
+
+-------------- use it in a screen ----------------
+
+class MenuScreen : public Screen {
+private:
+    Menu menu;  // Menu object for this screen
+
+public:
+    MenuScreen(ScreenCallback cb, void* ctx)
+        : Screen(cb, ctx), menu("Settings", "Status", "About", "Exit") {}
+
+    void draw() override {
+        printf("[MenuScreen] Drawing menu...\n");
+        menu.draw();
+    }
+
+    void keyPressed(uint8_t key) override {
+        switch (key) {
+            case 1:  // Up
+                menu.moveUp();
+                break;
+            case 2:  // Down
+                menu.moveDown();
+                break;
+            case 3:  // Select
+                if (callback) {
+                    callback(context, 2, menu.getSelectedIndex());
+                }
+                return;
+        }
+        draw();  // Redraw the menu after a key press
+    }
+};
+
+------------ Screen Manager Integration -----------
+
+void screenCallback(void* ctx, int8_t screenId, uint8_t key) {
+    AppContext* appCtx = static_cast<AppContext*>(ctx);
+
+    if (screenId == 0 && key == 1) {
+        appCtx->screenMgr->setScreen(new MenuScreen(screenCallback, ctx));
+    } else if (screenId == 2) {
+        // Handle the menu selection (key represents the selected menu item index)
+        printf("[App] Menu option %d selected: %s\n", key, appCtx->screenMgr->getSelectedItem());
+
+        // You can switch to different screens based on the selected item here
+    }
+}
+
+----------- main ---------------
+int main() {
+    ScreenManager manager;
+    AppContext appCtx = {
+        .appName = "MyApp",
+        .screenMgr = &manager
+    };
+
+    // Start with a menu screen
+    manager.setScreen(new MenuScreen(screenCallback, &appCtx));
+
+    // Simulate some key events
+    manager.sendKey(2);  // Down
+    manager.sendKey(1);  // Up
+    manager.sendKey(3);  // Select (get selected option)
+
+    return 0;
+}
+
+============================
+Asked chat gpt to write code for a label inherited from a widget class, then two drawn from an array, 
+then button and label drawn from an array
+I got each step working before moving on to the next step, when the two different widgets were working
+I moved the definitions to a separate header file.
+============ 250513 =================
+Widgets working label, button, edit. Looking to do lcd update only as needed, so saved it here.
+
+============250517=========================
+
+Added redraw variable to screen class to hold the area of frame buffer to redraw  , updating screens and keyboard 
+handlers changes the redraw area, at the moment this is the whole screen.
+
+===========================================
+lcd
+    DIS_RE 3    //9-22
+    DIS_DC 4    //6-25
+    DIS_CS 5    //7-24
+    DIS_CLK 6   //4-27
+    DIS_SI 7    //5-26
+
+i2c
+
+slave (display)
+    QW/ST connector
+    12c0
+    scl 13
+    sda 12
+    looking with usb on top
+    |gnd|3v3|sda|scl|
+
+master (core1)
+    12c1
+    scl 27
+    sda 26
+
+rtc
+ 
+ male rtc connector on nec board
+ ____________________
+ |- | nc | C | D | + |
+ ---------------------
+
+    C: I2C_SCL		27	
+    D: I2C_SDA		26 
+
+key pad
+
+    pin 29
+----------- i2c -------------
+ 
+int 	i2c_write_blocking_until (i2c_inst_t *i2c, uint8_t addr, const uint8_t *src, size_t len, bool nostop, absolute_time_t until)
+ 	Attempt to write specified number of bytes to address, blocking until the specified absolute time is reached. 
+ 
+int 	i2c_read_blocking_until (i2c_inst_t *i2c, uint8_t addr, uint8_t *dst, size_t len, bool nostop, absolute_time_t until)
+ 	Attempt to read specified number of bytes from address, blocking until the specified absolute time is reached. 
+ 
+static int 	i2c_write_timeout_us (i2c_inst_t *i2c, uint8_t addr, const uint8_t *src, size_t len, bool nostop, uint timeout_us)
+ 	Attempt to write specified number of bytes to address, with timeout. 
+ 
+static int 	i2c_read_timeout_us (i2c_inst_t *i2c, uint8_t addr, uint8_t *dst, size_t len, bool nostop, uint timeout_us)
+ 	Attempt to read specified number of bytes from address, with timeout. 
+ 
+
+int 	i2c_write_blocking (i2c_inst_t *i2c, uint8_t addr, const uint8_t *src, size_t len, bool nostop)
+ 	Attempt to write specified number of bytes to address, blocking. 
+ 
+int 	i2c_read_blocking (i2c_inst_t *i2c, uint8_t addr, uint8_t *dst, size_t len, bool nostop)
+ 	Attempt to read specified number of bytes from address, blocking. 
+ 
+static void 	i2c_write_raw_blocking (i2c_inst_t *i2c, const uint8_t *src, size_t len)
+ 	Write direct to TX FIFO. 
+ 
+static void 	i2c_read_raw_blocking (i2c_inst_t *i2c, uint8_t *dst, size_t len)
+ 	Read direct from RX FIFO. 
+ 
+
+
+static size_t 	i2c_get_write_available (i2c_inst_t *i2c)
+ 	Determine non-blocking write space available. 
+ 
+static size_t 	i2c_get_read_available (i2c_inst_t *i2c)
+ 	Determine number of bytes received. 
+ 
+
+static uint8_t 	i2c_read_byte_raw (i2c_inst_t *i2c)
+ 	Pop a byte from I2C Rx FIFO.This function is non-blocking and assumes the Rx FIFO isn't empty. 
+ 
+static void 	i2c_write_byte_raw (i2c_inst_t *i2c, uint8_t value)
+ 	Push a byte into I2C Tx FIFO.This function is non-blocking and assumes the Tx FIFO isn't full. 
+ 
+
+static uint 	i2c_get_dreq (i2c_inst_t *i2c, bool is_tx)
+ 	Return the DREQ to use for pacing transfers to/from a particular I2C instance. 
+
+------ i2c interactions ----------------
+The master can write and read to the slave
+a pointer to a buffer is provided to contain the data to be written or read data into it
+
+
+
+----- i2c multiple byte send receive  -------
+The master slave example for pico sent and displayed single bytes
+I wanted to receive a buffer full of bytes.  Used chatgpt and after a few refinments
+I got what I wanted 250526
+
+----- i2c -------------
+Writing 
+We can write a single or multiple bytes to the slave
+When writing multiple bytes, the first is the command
+
+Here are some ideas for i2c communications
+single byte write (no return values expected),multi byte write (no return values expected),single and multi byte Read functions (return values expected)
+the format ive used here is 
+command Description command name,   parameters  returned values(if requested)    
+----- Write functions
+Single byte write functions
+    turn screen on  scrOn 
+    turn screen off scrOf
+
+Multiple bytes write functions
+    Change screen   scrCng ,    screen id
+    Change label text     txtCng ,    screen id,label widget index, string size,text
+    Load image      imgLod ,     screen id,image widget Index, data Size,data
+    move image      imgMov ,     screen id,position x, position y
+
+Read functions (requests)
+    Get button status   butGet, button widget index  returns state
+    get Text            txtGet, screen id, widget id, returns text size,text
+    has ui status changed       uiGet, returns bool
+    get ui changes      uiCng,  returns size,ids
+ ------------
+ master uc              
+ cmnd           cmnd -> create i2cRec object -> update system
+ cmnd + data    cmnd + data -> 
+ cmnd req 
+ -------------------------------
+
+using ScreenFactoryFunc = Screen* (*)(void (*)(int8_t, uint8_t), uint8_t);
+
+Breakdown
+    using ScreenFactoryFunc = ...;:
+    This creates a new type alias named ScreenFactoryFunc.
+
+    Screen*:
+        This is the return type of the function being aliased — a pointer to a Screen object.
+
+    (*)(...):
+        This means that ScreenFactoryFunc is a pointer to a function.
+
+    void (*)(int8_t, uint8_t):
+        This is the first parameter of the function — a pointer to another function that returns void and takes two parameters: an int8_t and a uint8_t.
+
+    uint8_t:
+        This is the second parameter of the function.
+
+    Full Meaning
+        ScreenFactoryFunc is now a shorthand for a function pointer type that:
+
+    Takes two arguments:
+
+        A function pointer: void (*)(int8_t, uint8_t)
+        A uint8_t value
+
+    Returns: a Screen*
+
+Example Function Signature
+Here is an example function that matches this signature:
+
+    Screen* createBasicScreen(void (*callback)(int8_t, uint8_t), uint8_t option) {
+        return new BasicScreen(callback, option);
+    }
+
+You could assign this function to a variable of type ScreenFactoryFunc:
+
+    ScreenFactoryFunc factory = &createBasicScreen;
+
+TL;DR
+using ScreenFactoryFunc = Screen* (*)(void (*)(int8_t, uint8_t), uint8_t);
+This defines a type for functions that create a Screen, requiring:
+
+A callback function of type void(int8_t, uint8_t), and
+
+A uint8_t option as parameters.
+
+static ScreenFactoryFunc factories[SCREEN_COUNT] = {
+    [](void (*cb)(int8_t, uint8_t), uint8_t opt) -> Screen* {
+        return new BasicScreen(cb, opt);
+    }
+};
+
+So, each element of factories[] is a pointer to a function that:
+
+    Returns a Screen*
+
+    Accepts two arguments:
+
+        A callback of type void(int8_t, uint8_t)
+        A uint8_t option
+
+static makes the factories array persist across function calls and limits its visibility to the current translation unit (usually the .cpp file). 
+This is good for internal lookup tables.
+
+2. Initializing the array with a lambda function
+
+    [](void (*cb)(int8_t, uint8_t), uint8_t opt) -> Screen* {
+        return new BasicScreen(cb, opt);
+    }
+
+This is a lambda expression, a way of defining an anonymous function inline.
+
+    []: Capture clause — in this case, empty, meaning the lambda does not capture any local variables.
+
+    (void (*cb)(int8_t, uint8_t), uint8_t opt): The parameters the lambda accepts. The first is a callback function pointer, the second is a simple byte option.
+
+    -> Screen*: The lambda returns a pointer to a Screen.
+
+    return new BasicScreen(cb, opt);: It dynamically allocates a new BasicScreen with the given parameters and returns it.
+
+Because the lambda has no captures, the compiler can convert it to a function pointer, which is why it is compatible with ScreenFactoryFunc.
+
+3. Putting it all together
+You now have a statically defined array of screen factory functions, where factories[0] (or whichever index) points to a function that creates a BasicScreen.
+
+You can later call:
+
+    Screen* s = factories[0](myCallbackFunc, 42);
+
+TL;DR
+
+    static ScreenFactoryFunc factories[SCREEN_COUNT] = {
+        [](void (*cb)(int8_t, uint8_t), uint8_t opt) -> Screen* {
+            return new BasicScreen(cb, opt);
+        }
+    };
+This creates a static array of screen-creating functions, using lambda functions with no captures, so they can be stored as function pointers. 
+Each entry returns a different type of screen — in this case, a BasicScreen.
+
+------ Lambda ----------
+Lambda expressions in C++ are a concise way to define anonymous functions—functions that don’t have a name. 
+They're especially useful for short bits of functionality that are passed as arguments (e.g., to std::sort, std::for_each, or in your case, screen factories).
+
+-- Basic Syntax
+
+    [ capture ] ( parameters ) -> return_type {
+        // function body
+    };
+
+Example
+
+    auto add = [](int a, int b) -> int {
+        return a + b;
+    };
+    int result = add(2, 3);  // result = 5
+
+-- Breakdown of Components
+Part	        Description
+[]	            Capture list: used to capture variables from the surrounding scope
+(int a, int b)	Parameter list
+-> int	        Return type (optional if the compiler can infer it)
+{ ... }	        Function body
+
+-- Lambda Without Capture
+A lambda with no capture can decay to a function pointer, which is how you're using it in:
+
+    []() -> Screen* { return new BasicScreen(); }
+This is legal as long as:
+
+    You don't reference anything outside the lambda.
+    You don't use [this], [&], or [=] to capture.
+
+Such lambdas can be stored in arrays of function pointers:
+
+    using FactoryFunc = Screen* (*)();
+    FactoryFunc arr[] = {
+        []() -> Screen* { return new MyScreen(); }
+    };
+
+-- Lambdas With Capture
+If you use variables from the surrounding scope, you must capture them:
+
+    int x = 5;
+    auto addX = [x](int y) { return x + y; };  // capture x by value
+Or by reference:
+
+    auto addX = [&x](int y) { return x + y; };  // capture x by reference
+Captured lambdas can't be converted to function pointers unless they’re stateless.
+
+-- Lambda as Replacement for Named Function
+Instead of writing:
+
+    Screen* createMenuScreen() {
+        return new MenuScreen();
+    }
+    mgr.registerFactory(MENUSCREEN, createMenuScreen);
+
+You can just do:
+
+    mgr.registerFactory(MENUSCREEN, []() -> Screen* { return new MenuScreen(); });
+
+TL;DR
+    Lambdas are inline anonymous functions.
+    Use [] to capture variables if needed.
+    Lambdas without captures can act as function pointers.
+    They're ideal for short, local functionality (like factory registration).
+
+----- key return ----
+a screen returns an int value to the screenManager anfer a key pressed
+This value is returned to the keyDown,keyPressed or keyReleased function
+I could either 
+    store a value for each of these function,
+    each functin deal with the returned value
+    encode the function in the value
+I want the value to store,
+    screen id
+    a command
+I have 32 bits to play with
+I would like 256 screen ids (8 bits) 24 left
+16 commands                 (4 bits) 20 left

@@ -1,0 +1,130 @@
+i2cObj.hpp
+
+#pragma once
+#include <cstdint>
+#include <cstddef>
+
+class Display;
+class ScreenManager;
+
+class i2cObj {
+public:
+    static constexpr size_t MAX_DATA = 32;
+    uint8_t data[MAX_DATA];
+    size_t size;
+
+    i2cObj(const uint8_t* srcData, size_t len);
+    virtual ~i2cObj() = default;
+
+    virtual void execute(Display& display, ScreenManager& screenMgr);
+    virtual const uint8_t* getResponse(size_t& responseSize);
+};
+
+class CommandDrawPixel : public i2cObj {
+public:
+    CommandDrawPixel(const uint8_t* srcData, size_t len);
+    void execute(Display& display, ScreenManager& screenMgr) override;
+};
+
+class CommandDrawText : public i2cObj {
+public:
+    CommandDrawText(const uint8_t* srcData, size_t len);
+    void execute(Display& display, ScreenManager& screenMgr) override;
+};
+
+class ChangeScreen : public i2cObj {
+public:
+    ChangeScreen(const uint8_t* srcData, size_t len);
+    void execute(Display& display, ScreenManager& screenMgr) override;
+    const uint8_t* getResponse(size_t& responseSize) override;
+};
+
+--------------------------------
+Display.hpp
+
+#pragma once
+#include <string>
+
+class Display {
+public:
+    int width;
+    int height;
+
+    Display(int w, int h);
+
+    void drawPixel(int x, int y, bool color);
+    void drawText(int x, int y, const std::string& text);
+    void clear();
+    void refresh();
+};
+
+--------------------------------
+Widget.hpp
+
+#pragma once
+#include "Display.hpp"
+
+class Widget {
+public:
+    int x, y;
+
+    Widget(int x, int y);
+    virtual ~Widget() = default;
+
+    virtual void draw(Display& display) = 0;
+};
+
+--------------------------------
+LabelWidget.hpp
+
+#pragma once
+#include "Widget.hpp"
+#include <string>
+
+class LabelWidget : public Widget {
+private:
+    std::string text;
+
+public:
+    LabelWidget(int x, int y, const std::string& text);
+    void draw(Display& display) override;
+};
+
+--------------------------------
+Screen.hpp
+
+#pragma once
+#include <vector>
+#include "Widget.hpp"
+#include "Display.hpp"
+
+class Screen {
+protected:
+    std::vector<Widget*> widgets;
+
+public:
+    virtual ~Screen();
+
+    void addWidget(Widget* widget);
+    virtual void draw(Display& display);
+};
+
+--------------------------------
+ScreenManager.hpp
+
+#pragma once
+#include <vector>
+#include "Screen.hpp"
+
+class ScreenManager {
+private:
+    std::vector<Screen*> screens;
+    Screen* activeScreen = nullptr;
+
+public:
+    void addScreen(Screen* screen);
+    void setActiveScreen(size_t id);
+    Screen* getActiveScreen();
+
+    void drawActiveScreen(Display& display);
+};

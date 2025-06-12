@@ -1,5 +1,5 @@
 #include "menuscreen.h"
-#include "../keyboard.h"
+#include <keyboard.h>
 
 //MenuScreen::MenuScreen(void (*rcb)(int8_t menu, uint8_t option), void (*hscb)(uint32_t highscore), uint32_t highscore, uint8_t option) {
 MenuScreen::MenuScreen(){

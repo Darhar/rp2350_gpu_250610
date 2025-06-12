@@ -61,6 +61,6 @@ target_link_libraries(i2c_ui_lib
     pico_multicore         
     )
 
-#pico_add_extra_outputs(i2c_ui_lib)
+pico_add_extra_outputs(i2c_ui_lib)
 
 

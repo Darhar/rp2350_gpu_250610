@@ -34,36 +34,9 @@ project(i2c_ui_lib C CXX ASM)
 pico_sdk_init()
 
 
-# Add executable. Default name is the project name, version 0.1
-
-#add_executable(dt300cpp_00 
-#    common.cpp
-#    framebuffer.cpp
-#    display.cpp
-#    keyboard.cpp
-#    image.cpp
-#    sprite.cpp
-#    splashscreen.cpp
-#    testscreen.cpp
-#    menuscreen.cpp
-#    settingsscreen.cpp 
-#    aboutscreen.cpp
-#    basicscreen.cpp
-#    menu.cpp
-#    widget.cpp
-#    label.cpp
-#    button.cpp
-#    edit.cpp 
-#    screenManager.cpp
-#    dt300cpp_00.cpp 
-#)
-
 add_subdirectory(lib)
 add_subdirectory(examples/rp2040_ui_demo)
 
-
-#pico_set_program_name( "dt300cpp_00")
-#pico_set_program_version(dt300cpp_00 "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(i2c_ui_lib 0)

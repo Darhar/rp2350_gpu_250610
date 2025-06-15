@@ -32,5 +32,5 @@ pico_enable_stdio_uart(rp2040_ui_demo 0)
 pico_enable_stdio_usb(rp2040_ui_demo 1)
 
 pico_add_extra_outputs(rp2040_ui_demo)
-file(COPY C:/Users/dlind/Documents/pico/vs_2/rp2350_gpu/build/examples/rp2040_ui_demo/rp2040_ui_demo.uf2 
-  DESTINATION C:/Users/dlind/Documents/pico/vs_2/rp2350_gpu/build)
+#file(COPY C:/Users/dlind/Documents/pico/vs_2/rp2350_gpu/build/examples/rp2040_ui_demo/rp2040_ui_demo.uf2 
+#  DESTINATION C:/Users/dlind/Documents/pico/vs_2/rp2350_gpu/build)

@@ -33,29 +33,40 @@ project(rp2040_ui_demo C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-
 add_subdirectory(lib)
-add_subdirectory(examples/rp2040_ui_demo)
 
-# Add the standard library to the build
-target_link_libraries(i2c_ui_lib
-        pico_stdlib)
-
-# Add the standard include files to the build
-target_include_directories(i2c_ui_lib PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}
+# 2) Gather all screen sources
+file(GLOB SCREEN_SRCS
+  ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/screens/src/*.cpp
 )
 
-# Add any user requested libraries
-target_link_libraries(i2c_ui_lib 
-    pico_i2c_slave
-    hardware_spi
-    hardware_dma
-    hardware_adc
-    hardware_i2c  
-    pico_multicore         
-    )
+# 3) Define the demo executable *at the root level*
+add_executable(${PROJECT_NAME}
+  examples/rp2040_ui_demo/main.cpp
+  ${SCREEN_SRCS}
+)
 
+# 4) Include paths for core library and screens
+target_include_directories(${PROJECT_NAME} PRIVATE
+  ${CMAKE_SOURCE_DIR}/lib/include
+  ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/screens/include
+)
 
+# 5) Link against libraries
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  i2c_ui_lib
+  pico_stdlib
+  pico_i2c_slave
+  hardware_spi
+  hardware_dma
+  hardware_adc
+  hardware_i2c
+  pico_multicore
+)
 
+# 6) Enable stdio and USB
+pico_enable_stdio_uart(${PROJECT_NAME} 0)
+pico_enable_stdio_usb(${PROJECT_NAME} 1)
 
+# 7) Generate the UF2 in build/ so “Run Project” finds it
+pico_add_extra_outputs(${PROJECT_NAME})

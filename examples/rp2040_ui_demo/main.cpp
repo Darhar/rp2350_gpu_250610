@@ -1,10 +1,10 @@
 #include "common.h"
 #include "display.h"
-#include "screens/testscreen.h"
-#include "screens/menuscreen.h"
-#include "screens/aboutscreen.h"
-#include "screens/settingsscreen.h"
-#include "screens/basicscreen.h"
+#include <testscreen.h>
+#include <menuscreen.h>
+#include <aboutscreen.h>
+#include <settingsscreen.h>
+#include <basicscreen.h>
 #include <ctime>
 #include <time.h>
 #include "keyboard.h"

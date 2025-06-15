@@ -257,7 +257,7 @@ int main()
         keyboard->checkKeyState(&screenMgr);
         screenMgr.update(deltaTimeMS);
         if(screenMgr.needRefresh()){
-            printf("redraw\n");
+            printf("redraw!\n");
             //display->drawBitmapRow(Vec2(0,0), DISPBUFSIZE, bg01);  
             display->clear(0);
             screenMgr.draw(display);

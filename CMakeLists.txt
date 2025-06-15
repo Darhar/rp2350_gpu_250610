@@ -28,7 +28,7 @@ set(PICO_BOARD pico2 CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(i2c_ui_lib C CXX ASM)
+project(rp2040_ui_demo C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
@@ -36,11 +36,6 @@ pico_sdk_init()
 
 add_subdirectory(lib)
 add_subdirectory(examples/rp2040_ui_demo)
-
-
-# Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(i2c_ui_lib 0)
-pico_enable_stdio_usb(i2c_ui_lib 1)
 
 # Add the standard library to the build
 target_link_libraries(i2c_ui_lib
@@ -61,6 +56,6 @@ target_link_libraries(i2c_ui_lib
     pico_multicore         
     )
 
-pico_add_extra_outputs(i2c_ui_lib)
+
 
 

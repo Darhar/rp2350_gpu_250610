@@ -5,6 +5,49 @@ ScreenManager::~ScreenManager() {
     delete activeScreen;
 }
 
+void ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
+    factories[id] = std::move(factory);
+    // Also init a blank descriptor if you like:
+    if (!screenData.count(id)) {
+        screenData[id] = ScreenDescriptor{ id, {} };
+    }
+}
+
+Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
+    // 1) Find the factory
+    auto fit = factories.find(id);
+    if (fit == factories.end()) {
+        return nullptr;    // or throw, or fallback
+    }
+
+    // 2) Use it to create the right subclass
+    Screen* screen = fit->second();  
+
+    // 3) Rebuild widgets from the descriptor
+    const auto& desc = screenData.at(id);
+    for (auto& wd : desc.widgets) {
+        //Widget* w = createWidgetFromDescriptor(wd);
+        //screen->addWidget(w, wd.widgetId);
+    }
+
+    // 4) (Optionally) restore any screen-level state:
+    //    e.g. screen->setSelected(desc.selectedIndex);
+
+    return screen;
+
+/*
+        const auto& desc = screenData[id];
+        Screen* screen = new Screen();
+        for (auto& w : desc.widgets) {
+            Widget* widget = createWidgetFromDescriptor(w);
+            screen->addWidget(widget, w.widgetId);
+        }
+        return screen;
+
+*/
+
+}
+
 void ScreenManager::registerFactory(ScreenEnum id, ScreenFactoryFunc func) {
     factories[id] = func;
 }
@@ -18,6 +61,9 @@ void ScreenManager::setActiveScreen(ScreenEnum id) {
         refresh=Rect2(0,0,DISPLAY_WIDTH,DISPLAY_HEIGHT);
 
     }
+}
+ScreenDescriptor ScreenManager::getDescriptor(ScreenEnum id){
+    return screenData.at(id);
 }
 
 void ScreenManager::update(uint16_t deltaTimeMS) {

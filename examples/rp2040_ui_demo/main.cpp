@@ -171,11 +171,11 @@ void core1_entry() {
         printf("Core 1 up\n");
 
     while (1){
-        run_master();        
+        //run_master();        
         printf("core1 %d\n",dbCount++);  
         Screen* thisScreen=screenMgr.getActiveScreen();
         printf("scr id:%d\n",thisScreen->screenId);
-
+/*
         for (Widget* widget : thisScreen->widgets) {
             switch(widget->getWidgetType()){
                 case WidgetType::Label:
@@ -198,6 +198,10 @@ void core1_entry() {
             }
             printf("\n");
         }
+
+*/
+
+
         sleep_ms(5000);
     }
 }
@@ -212,9 +216,25 @@ void registerAllScreens(ScreenManager& mgr) {
     };
 
     for (int i = 0; i < SCREEN_COUNT; ++i) {
-        if (factories[i]) {
+/*
+if (factories[i]) {
             mgr.registerFactory(static_cast<ScreenEnum>(i), factories[i]);
         }
+*/      
+
+        if (factories[i]) {
+            auto id = static_cast<ScreenEnum>(i);
+            mgr.registerScreen(id, factories[i]);
+
+            // Optionally, seed the descriptor so buildScreenFromDescriptor()
+            // will reconstruct the widgets the first time:
+            auto& desc = mgr.getDescriptor(id);
+            if (desc.widgets.empty()) {
+                // e.g. call a helper to populate default widgets:
+                //seedDefaultWidgetsForScreen(id, desc);
+            }
+        }
+
     }
 }
 

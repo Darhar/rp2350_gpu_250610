@@ -3,8 +3,9 @@
 #include <vector>
 #include "screen.h"
 
-#define SCREEN_COUNT 5
+#define SCREEN_COUNT 2
 
+//ScreenFactoryFunc is a pointer to a function that returns a Screen* and takes no parameters
 using ScreenFactoryFunc = Screen* (*)();
 
 struct WidgetDescriptor {
@@ -52,6 +53,6 @@ class ScreenManager {
         void setRefreshRect(Rect2 refRect);  
         void disableRefresh(); 
         bool needRefresh();
-        ScreenDescriptor getDescriptor(ScreenEnum id);
+        ScreenDescriptor& getDescriptor(ScreenEnum id);
     };
     

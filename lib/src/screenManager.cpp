@@ -62,7 +62,7 @@ void ScreenManager::setActiveScreen(ScreenEnum id) {
 
     }
 }
-ScreenDescriptor ScreenManager::getDescriptor(ScreenEnum id){
+ScreenDescriptor& ScreenManager::getDescriptor(ScreenEnum id){
     return screenData.at(id);
 }
 

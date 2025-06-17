@@ -210,9 +210,9 @@ void registerAllScreens(ScreenManager& mgr) {
     static ScreenFactoryFunc factories[SCREEN_COUNT] = {
         []() -> Screen* { return new MenuScreen(); },
         []() -> Screen* { return new TestScreen(); },
-        []() -> Screen* { return new SettingsScreen(); },
-        []() -> Screen* { return new AboutScreen(); },
-        []() -> Screen* { return new BasicScreen(); },
+        //[]() -> Screen* { return new SettingsScreen(); },
+        //[]() -> Screen* { return new AboutScreen(); },
+        //[]() -> Screen* { return new BasicScreen(); },
     };
 
     for (int i = 0; i < SCREEN_COUNT; ++i) {

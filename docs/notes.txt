@@ -624,3 +624,196 @@ I want the value to store,
 I have 32 bits to play with
 I would like 256 screen ids (8 bits) 24 left
 16 commands                 (4 bits) 20 left
+
+----------- 7. Dynamic Screen Persistence
+To support on-demand screen creation without losing state, we introduced a descriptor-based design
+
+//---  WidgetDescriptor & ScreenDescriptor
+    struct WidgetDescriptor {
+        WidgetType type;
+        uint32_t widgetId;
+        std::string initialText;
+        int x, y, width, height;
+        // additional persistent state…
+    };
+
+    struct ScreenDescriptor {
+        ScreenEnum id;
+        std::vector<WidgetDescriptor> widgets;
+        // e.g., selected option, scroll offsets, etc.
+    };
+
+
+//---  Persistent Updates
+When a command changes a widget:
+
+    auto& desc = screenData[targetScreen];
+    auto& wd   = findWidgetDescriptor(desc, widgetId);
+    wd.initialText = newText; // persist
+    if (activeScreen == targetScreen) {
+        updateLiveWidget(widgetId, newText);
+    }
+
+
+//--- 
+
+using ScreenFactoryFunc = std::function<Screen*()>;  
+// Or a raw function‐pointer: Screen* (*)(void)
+
+class ScreenManager {
+public:
+    // Register at startup:
+    void registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
+      factories[id] = std::move(factory);
+      // Also init a blank descriptor if you like:
+      if (!screenData.count(id)) {
+        screenData[id] = ScreenDescriptor{ id, {} };
+      }
+    }
+
+    Screen* buildScreenFromDescriptor(ScreenEnum id);
+
+private:
+
+    std::map<ScreenEnum, ScreenDescriptor>    screenData;
+    std::map<ScreenEnum, ScreenFactoryFunc>   factories;
+};
+
+//----- In your ScreenManager.cpp -----
+
+Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
+    // 1) Find the factory
+    auto fit = factories.find(id);
+    if (fit == factories.end()) {
+        return nullptr;    // or throw, or fallback
+    }
+
+    // 2) Use it to create the right subclass
+    Screen* screen = fit->second();  
+
+    // 3) Rebuild widgets from the descriptor
+    const auto& desc = screenData.at(id);
+    for (auto& wd : desc.widgets) {
+        Widget* w = createWidgetFromDescriptor(wd);
+        screen->addWidget(w, wd.widgetId);
+    }
+
+    // 4) (Optionally) restore any screen-level state:
+    //    e.g. screen->setSelected(desc.selectedIndex);
+
+    return screen;
+
+/*
+        const auto& desc = screenData[id];
+        Screen* screen = new Screen();
+        for (auto& w : desc.widgets) {
+            Widget* widget = createWidgetFromDescriptor(w);
+            screen->addWidget(widget, w.widgetId);
+        }
+        return screen;
+
+*/
+
+}
+
+//----  And then in your initialization code (perhaps in a registerAllScreens() function):
+screenManager.registerScreen(ScreenEnum::About,
+    []() -> Screen* { return new AboutScreen(/*ctor args*/); }
+);
+screenManager.registerScreen(ScreenEnum::Settings,
+    []() -> Screen* { return new SettingsScreen(/*ctor args*/); }
+);
+// …and so on for each concrete screen…
+
+
+
+describing screens
+// somewhere in your initialization code, e.g. in main.cpp or a registerScreens() helper
+
+// 1) First, register the factory for TestScreen
+screenManager.registerScreen(ScreenEnum::TESTSCREEN, []() -> Screen* {
+    return new TestScreen();
+});
+
+// 2) Then, *initialize* its descriptor exactly once (so buildScreenFromDescriptor
+//    will recreate the same widgets on every rebuild):
+
+auto &desc = screenManager.getDescriptor(ScreenEnum::TESTSCREEN);
+if (desc.widgets.empty()) {
+    // widgetId must be unique per‐screen
+    desc.widgets.push_back({
+        WidgetType::LABEL,    // type
+        /*widgetId=*/1,
+        /*initialText=*/"First Label",
+        /*x=*/5, /*y=*/15, /*w=*/20, /*h=*/10
+    });
+    desc.widgets.push_back({
+        WidgetType::BUTTON,
+        /*widgetId=*/2,
+        /*initialText=*/"Click",  // button label
+        5, 28, 100, 10
+    });
+    desc.widgets.push_back({
+        WidgetType::EDIT,
+        /*widgetId=*/3,
+        /*initialText=*/"",       // initial contents
+        5, 42, 100, 10
+    });
+    // any other screen‐level state:
+    // desc.selectedIndex = 0;
+}
+
+// 3) Later, when you need a live Screen*:
+Screen* live = screenManager.buildScreenFromDescriptor(ScreenEnum::TESTSCREEN);
+// live->draw(...); live->update(...), etc.
+
+//--- using FactoryFunc = Screen* (*)();
+
+using FactoryFunc = Screen* (*)();
+is a type alias declaration using the using keyword (introduced in C++11), which is a more readable alternative to typedef.
+
+🔍 Breaking It Down
+1. Screen*
+This is the return type of the function — a pointer to a Screen object.
+
+2. (*)()
+This means the type is a pointer to a function that:
+
+    Takes no parameters (the empty ()),
+    Returns a Screen*.
+
+3. using FactoryFunc = ...;
+This defines a new alias called FactoryFunc. So now, wherever you write FactoryFunc, it means Screen* (*)().
+
+✅ What It Represents
+FactoryFunc is a pointer to a function that returns a Screen* and takes no parameters.
+
+🧱 Example
+This function:
+
+    Screen* createBasicScreen() {
+        return new BasicScreen();
+    }
+Matches the FactoryFunc type, so you can do:
+
+    FactoryFunc func = createBasicScreen;
+    Screen* screen = func();  // Calls createBasicScreen()
+Or use a lambda (as long as it has no captures):
+
+    FactoryFunc func = []() -> Screen* {
+        return new BasicScreen();
+    };
+
+🧠 Why It's Useful
+You use FactoryFunc when:
+
+    You want to register a set of screen constructors,
+    You want to store them in an array or map,
+    And later create screens by calling the function pointer:
+
+
+    std::map<ScreenEnum, FactoryFunc> factories;
+    factories[BASICSCREEN] = []() -> Screen* { return new BasicScreen(); };
+
+    // To create:
+    Screen* s = factories[BASICSCREEN]();

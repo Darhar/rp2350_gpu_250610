@@ -6,7 +6,7 @@ ScreenManager::~ScreenManager() {
 }
 
 void ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
-    factories[id] = std::move(factory);
+    screenObjects[id] = std::move(factory);
     // Also init a blank descriptor if you like:
     if (!screenData.count(id)) {
         screenData[id] = ScreenDescriptor{ id, {} };
@@ -15,13 +15,13 @@ void ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
 
 Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
     // 1) Find the factory
-    auto fit = factories.find(id);
-    if (fit == factories.end()) {
+    auto curFactory = screenObjects.find(id);
+    if (curFactory == screenObjects.end()) {
         return nullptr;    // or throw, or fallback
     }
 
     // 2) Use it to create the right subclass
-    Screen* screen = fit->second();  
+    Screen* screen = curFactory->second();  
 
     // 3) Rebuild widgets from the descriptor
     const auto& desc = screenData.at(id);
@@ -34,34 +34,22 @@ Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
     //    e.g. screen->setSelected(desc.selectedIndex);
 
     return screen;
-
-/*
-        const auto& desc = screenData[id];
-        Screen* screen = new Screen();
-        for (auto& w : desc.widgets) {
-            Widget* widget = createWidgetFromDescriptor(w);
-            screen->addWidget(widget, w.widgetId);
-        }
-        return screen;
-
-*/
-
 }
 
 void ScreenManager::registerFactory(ScreenEnum id, ScreenFactoryFunc func) {
-    factories[id] = func;
+    screenObjects[id] = func;
 }
 
 void ScreenManager::setActiveScreen(ScreenEnum id) {
     printf("Setting %d\n",id);
-    auto it = factories.find(id);
-    if (it != factories.end()) {
+    auto it = screenObjects.find(id);
+    if (it != screenObjects.end()) {
         delete activeScreen;
         activeScreen = it->second();  // Create new screen with no arguments
         refresh=Rect2(0,0,DISPLAY_WIDTH,DISPLAY_HEIGHT);
-
     }
 }
+
 ScreenDescriptor& ScreenManager::getDescriptor(ScreenEnum id){
     return screenData.at(id);
 }

@@ -25,7 +25,7 @@ struct ScreenDescriptor {
 
 class ScreenManager {
     private:
-        std::map<ScreenEnum, ScreenFactoryFunc> factories;
+        std::map<ScreenEnum, ScreenFactoryFunc> screenObjects;
         std::map<ScreenEnum, ScreenDescriptor>    screenData;
         Screen* activeScreen = nullptr;
         ScreenEnum currentScreen;

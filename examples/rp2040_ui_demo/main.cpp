@@ -175,39 +175,12 @@ void core1_entry() {
         printf("core1 %d\n",dbCount++);  
         Screen* thisScreen=screenMgr.getActiveScreen();
         printf("scr id:%d\n",thisScreen->screenId);
-/*
-        for (Widget* widget : thisScreen->widgets) {
-            switch(widget->getWidgetType()){
-                case WidgetType::Label:
-                {
-                    Label* wLabel = static_cast<Label*>(widget);
-                    char tmpBuf[21];
-                    sprintf(tmpBuf,"%d",dbCount);
-                    wLabel->label = tmpBuf; 
-                    printf("updated label: %s\n", wLabel->label.c_str());
-                    screenMgr.setRefreshRect(Rect2(0, 0, 158, 64));
-                }
-                    
-                break;       
-                case WidgetType::Edit:
-                    printf("Edit,");
-                break;  
-                case WidgetType::Button:
-                    printf("Button,");
-                break;                                           
-            }
-            printf("\n");
-        }
-
-*/
-
-
         sleep_ms(5000);
     }
 }
 
 void registerAllScreens(ScreenManager& mgr) {
-    static ScreenFactoryFunc factories[SCREEN_COUNT] = {
+    static ScreenFactoryFunc screenObjects[SCREEN_COUNT] = {
         []() -> Screen* { return new MenuScreen(); },
         []() -> Screen* { return new TestScreen(); },
         //[]() -> Screen* { return new SettingsScreen(); },
@@ -216,25 +189,44 @@ void registerAllScreens(ScreenManager& mgr) {
     };
 
     for (int i = 0; i < SCREEN_COUNT; ++i) {
-/*
-if (factories[i]) {
-            mgr.registerFactory(static_cast<ScreenEnum>(i), factories[i]);
-        }
-*/      
 
-        if (factories[i]) {
+        if (screenObjects[i]) {
             auto id = static_cast<ScreenEnum>(i);
-            mgr.registerScreen(id, factories[i]);
+            mgr.registerScreen(id, screenObjects[i]);
 
             // Optionally, seed the descriptor so buildScreenFromDescriptor()
             // will reconstruct the widgets the first time:
             auto& desc = mgr.getDescriptor(id);
             if (desc.widgets.empty()) {
-                // e.g. call a helper to populate default widgets:
-                //seedDefaultWidgetsForScreen(id, desc);
+            // e.g. call a helper to populate default widgets:
+            //seedDefaultWidgetsForScreen(id, desc);
+            // widgetId must be unique per‐screen
+
+                if(id==ScreenEnum::TESTSCREEN){
+                     desc.widgets.push_back({
+                        WidgetType::Label,    // type
+                        /*widgetId=*/1,
+                        /*initialText=*/"First Label",
+                        /*x=*/5, /*y=*/15, /*w=*/20, /*h=*/10
+                    });
+                    desc.widgets.push_back({
+                        WidgetType::Button,
+                        /*widgetId=*/2,
+                        /*initialText=*/"Click",  // button label
+                        5, 28, 100, 10
+                    });
+                    desc.widgets.push_back({
+                        WidgetType::Edit,
+                        /*widgetId=*/3,
+                        /*initialText=*/"",       // initial contents
+                        5, 42, 100, 10
+                    });
+                    // any other screen‐level state:
+                    // desc.selectedIndex = 0; 
+                    printf("widgets size:%d\n",desc.widgets.size());
+                }
             }
         }
-
     }
 }
 

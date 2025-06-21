@@ -1,5 +1,8 @@
 
 #include "screenManager.hpp"
+#include <label.h>
+#include <button.h>
+#include <edit.h>
 
 ScreenManager::~ScreenManager() {
     delete activeScreen;
@@ -10,6 +13,45 @@ void ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
     // Also init a blank descriptor if you like:
     if (!screenData.count(id)) {
         screenData[id] = ScreenDescriptor{ id, {} };
+        //screenData.emplace(id, ScreenDescriptor{ id, {} });
+    }
+}
+
+Widget* createWidgetFromDescriptor(const WidgetDescriptor& wd) {
+    switch (wd.type) {
+        case WidgetType::Label:
+            // new Label(text, x, y, width, height)
+            return new Label(
+                wd.initialText,
+                wd.x, wd.y,
+                wd.width, wd.height
+            );
+
+        case WidgetType::Button:
+            // For a button you might want to store the “action” text
+            return new Button(
+                wd.initialText,   // button caption
+                wd.x, wd.y,
+                wd.width, wd.height,
+                wd.initialText    // or wd.actionText if you have one
+            );
+
+        case WidgetType::Edit:
+            // For an edit field you might also persist min/max or cursor pos
+            return new Edit(
+                wd.initialText,   // initial contents
+                wd.x, wd.y,
+                wd.width, wd.height,
+                /*maxLength=*/50, // example fixed limit
+                /*min=*/0,
+                /*max=*/100
+            );
+
+        // … handle other widget types …
+
+        default:
+            // Unknown widget type—return a nullptr or a placeholder
+            return nullptr;
     }
 }
 
@@ -25,9 +67,10 @@ Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
 
     // 3) Rebuild widgets from the descriptor
     const auto& desc = screenData.at(id);
+    //auto& desc   = screenData[id];    
     for (auto& wd : desc.widgets) {
-        //Widget* w = createWidgetFromDescriptor(wd);
-        //screen->addWidget(w, wd.widgetId);
+        Widget* w = createWidgetFromDescriptor(wd);
+        screen->addWidget(w, wd.widgetId);
     }
 
     // 4) (Optionally) restore any screen-level state:
@@ -42,13 +85,21 @@ void ScreenManager::registerFactory(ScreenEnum id, ScreenFactoryFunc func) {
 
 void ScreenManager::setActiveScreen(ScreenEnum id) {
     printf("Setting %d\n",id);
+    /*
     auto it = screenObjects.find(id);
     if (it != screenObjects.end()) {
         delete activeScreen;
         activeScreen = it->second();  // Create new screen with no arguments
         refresh=Rect2(0,0,DISPLAY_WIDTH,DISPLAY_HEIGHT);
-    }
+    }    
+    */
+
+    delete activeScreen;
+    activeScreen = buildScreenFromDescriptor(id);
+
 }
+
+
 
 ScreenDescriptor& ScreenManager::getDescriptor(ScreenEnum id){
     return screenData.at(id);

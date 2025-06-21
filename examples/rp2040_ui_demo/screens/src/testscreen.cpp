@@ -4,11 +4,15 @@ TestScreen::TestScreen() {
     screenId = ScreenEnum::TESTSCREEN;
     title =  "Test Screen";
     duration=0; 
+/*
     int textWid=term6x9->getTextWidth("Click Me");
     Widget* label = new Label("First Label", 5, 15, 20, 10);
     Widget* button = new Button("Button1", 5, 28, 100, 10,"Click");
     Widget* edit1 = new Edit("Edit1", 5, 42, 100, 10,50,0,100);
     widgets = { label, button, edit1 };// Store in vector of Widget pointers
+*/
+
+
     funkyV16->setClearSpace(true);
     refresh=Rect2(0,0,158,64);
 
@@ -23,7 +27,8 @@ TestScreen::~TestScreen() {
     
 }
 
-void TestScreen::addWidget(Widget* widget) {
+void TestScreen::addWidget(Widget* widget,uint32_t widgetId) {
+    printf("Addin widgets");
     widgets.push_back(widget);
     if (selectedIndex == -1 && widget->isSelectable()) {
         selectedIndex = widgets.size() - 1;
@@ -42,14 +47,23 @@ void TestScreen::update(uint16_t deltaTimeMS) {
 
 }
 
-void TestScreen::draw(Display *display) {
+void TestScreen::draw(Display* display) {
 
-    funkyV16->drawText(display, title, Vec2((DISPLAY_WIDTH-(funkyV16->getTextWidth(title)))/2, 0), 255, 1);
+    //funkyV16->drawText(display, title, Vec2((DISPLAY_WIDTH-(funkyV16->getTextWidth(title)))/2, 0), 255, 1);
 
     // Draw all widgets
-    for (const Widget* widget : widgets) {
-        widget->draw(display);
+   // for (const Widget* widget : widgets) {
+        //widget->draw(display);
+    //}
+
+    //void draw(Display* d) override {
+    printf("drawing %d widgets\n",widgets.size());
+    int widgNo=0;
+    for (auto* w : widgets){
+        printf("%d\n",widgNo++);
+        w->draw(display);  
     }
+    //}
 }
 
 int TestScreen::keyPressed(uint8_t key) {

@@ -25,6 +25,7 @@ public:
     MenuScreen();
     ~MenuScreen();
 
+    void addWidget(Widget* widget,uint32_t widgetId);
     void update(uint16_t deltaTimeMS);
     void draw(Display *display);
     int keyPressed(uint8_t key);

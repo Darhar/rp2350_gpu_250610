@@ -7,7 +7,7 @@ Label::Label(const std::string& text, int x, int y, int width, int height)
     }
 
 void Label::draw(Display *disp) const {
-
+    printf("draw label");
     if (selected) {
         disp->setInverted(true);
     } else {

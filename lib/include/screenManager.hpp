@@ -31,14 +31,10 @@ class ScreenManager {
         ScreenEnum currentScreen;
         Rect2 refresh;
         int keyReturn;//
-
-
     public:
         ~ScreenManager();
 
         void registerScreen(ScreenEnum id, ScreenFactoryFunc factory);
-      
-    
         void registerFactory(ScreenEnum id, ScreenFactoryFunc func);
         void setActiveScreen(ScreenEnum id);
         void update(uint16_t deltaTimeMS);

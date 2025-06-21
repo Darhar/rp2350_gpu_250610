@@ -16,7 +16,7 @@
         virtual int keyPressed(uint8_t key) = 0;
         virtual int keyReleased(uint8_t key) = 0;
         virtual int keyDown(uint8_t key) = 0;
-
+        virtual  void addWidget(Widget* widget,uint32_t widgetId)=0;
         virtual ~Screen() {}
         uint8_t screenId = 0;
         Rect2 refresh;

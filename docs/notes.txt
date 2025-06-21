@@ -703,17 +703,6 @@ Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
 
     return screen;
 
-/*
-        const auto& desc = screenData[id];
-        Screen* screen = new Screen();
-        for (auto& w : desc.widgets) {
-            Widget* widget = createWidgetFromDescriptor(w);
-            screen->addWidget(widget, w.widgetId);
-        }
-        return screen;
-
-*/
-
 }
 
 //----  And then in your initialization code (perhaps in a registerAllScreens() function):
@@ -817,3 +806,32 @@ You use FactoryFunc when:
 
     // To create:
     Screen* s = factories[BASICSCREEN]();
+
+//------------------------
+    Screen* screen = new Screen();
+is trying to instantiate your abstract base class Screen. Because you’ve declared pure-virtual methods in Screen:
+
+virtual void update(...) = 0;
+virtual void draw(...)   = 0;
+…
+it has no concrete constructor you can call—there’s no full implementation behind those methods—so you cannot do new Screen(). 
+The compiler will reject it with an “cannot instantiate abstract class” error.
+
+What you actually want
+Instead of calling new Screen() you need to invoke the factory that creates the appropriate derived class (e.g. TestScreen, MenuScreen, 
+etc.). 
+That factory will call new TestScreen() (or whichever screen type) under the hood, giving you a concrete object you can work with.
+
+So replace:
+
+// ❌ WRONG: Screen is abstract, can’t new it
+Screen* screen = new Screen();
+with something like:
+
+// ✅ RIGHT: use the registered factory for this screen ID
+auto factory = factories.at(id);
+Screen* screen = factory();   // e.g. calls new TestScreen()
+That way you get a proper instance of a subclass that implements all the virtual methods, and your buildScreenFromDescriptor 
+will compile and run as intended.
+
+//----250621---- screen descriptors working

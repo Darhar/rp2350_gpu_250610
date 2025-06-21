@@ -172,9 +172,9 @@ void core1_entry() {
 
     while (1){
         //run_master();        
-        printf("core1 %d\n",dbCount++);  
+        //printf("core1 %d\n");  
         Screen* thisScreen=screenMgr.getActiveScreen();
-        printf("scr id:%d\n",thisScreen->screenId);
+        printf("%d:scr id:%d\n",dbCount++,thisScreen->screenId);
         sleep_ms(5000);
     }
 }
@@ -193,15 +193,8 @@ void registerAllScreens(ScreenManager& mgr) {
         if (screenObjects[i]) {
             auto id = static_cast<ScreenEnum>(i);
             mgr.registerScreen(id, screenObjects[i]);
-
-            // Optionally, seed the descriptor so buildScreenFromDescriptor()
-            // will reconstruct the widgets the first time:
             auto& desc = mgr.getDescriptor(id);
             if (desc.widgets.empty()) {
-            // e.g. call a helper to populate default widgets:
-            //seedDefaultWidgetsForScreen(id, desc);
-            // widgetId must be unique per‐screen
-
                 if(id==ScreenEnum::TESTSCREEN){
                      desc.widgets.push_back({
                         WidgetType::Label,    // type
@@ -251,7 +244,7 @@ int main()
     uint32_t g = multicore_fifo_pop_blocking(); 
 
     registerAllScreens(screenMgr);
-    screenMgr.setActiveScreen(MENUSCREEN);
+    screenMgr.setActiveScreen(ScreenEnum::MENUSCREEN);
     sleep_ms(1000);
 
     if (g != FLAG_VALUE)

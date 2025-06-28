@@ -834,4 +834,24 @@ Screen* screen = factory();   // e.g. calls new TestScreen()
 That way you get a proper instance of a subclass that implements all the virtual methods, and your buildScreenFromDescriptor 
 will compile and run as intended.
 
+//------------------
+
+Screen* screen = it->second();
+
+Here, it is an iterator into the factories map (std::map<ScreenEnum, ScreenFactoryFunc>). 
+
+    it->first is the key (the ScreenEnum),
+    it->second is the value (the ScreenFactoryFunc itself, i.e. a callable object or function pointer).
+
+The line;
+
+    Screen* screen = it->second();
+
+gets the factory function stored in the map at that iterator,
+
+Invoking it with ()—which calls whatever lambda or function pointer you previously registered,
+
+it->second() means “call the factory associated with this ScreenEnum and return a 
+freshly new-allocated instance of the concrete Screen subclass (e.g. new TestScreen())..”
+
 //----250621---- screen descriptors working

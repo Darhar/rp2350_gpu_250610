@@ -1,8 +1,10 @@
 #include "menuscreen.h"
 #include <keyboard.h>
 
-//MenuScreen::MenuScreen(void (*rcb)(int8_t menu, uint8_t option), void (*hscb)(uint32_t highscore), uint32_t highscore, uint8_t option) {
-MenuScreen::MenuScreen(){
+
+MenuScreen::MenuScreen(ScreenManager& mgr)
+  : mgr(mgr)   // initializer list
+{
     printf("[MenuScreen] loading...\n");
     screenId = ScreenEnum::MENUSCREEN;
     //returnCallBack = rcb;
@@ -48,7 +50,8 @@ void MenuScreen::draw(Display *display) {
 }
 
 int MenuScreen::keyPressed(uint8_t key) {
-
+   
+    printf("MenuScreen keypressed\n");
     if(isAnimating)
         return 0;
 

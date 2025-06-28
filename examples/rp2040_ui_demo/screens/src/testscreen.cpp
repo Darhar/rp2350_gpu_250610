@@ -1,95 +1,57 @@
 #include "testscreen.h"
 
-TestScreen::TestScreen() {
-    screenId = ScreenEnum::TESTSCREEN;
-    title =  "Test Screen";
-    duration=0; 
-/*
-    int textWid=term6x9->getTextWidth("Click Me");
-    Widget* label = new Label("First Label", 5, 15, 20, 10);
-    Widget* button = new Button("Button1", 5, 28, 100, 10,"Click");
-    Widget* edit1 = new Edit("Edit1", 5, 42, 100, 10,50,0,100);
-    widgets = { label, button, edit1 };// Store in vector of Widget pointers
-*/
-
-
-    funkyV16->setClearSpace(true);
-    refresh=Rect2(0,0,158,64);
-
-    printf("[test] Started\n");
-}
-
 TestScreen::~TestScreen() {
     printf("deleting widgets\n");
     for (Widget* widget : widgets) {
         delete widget;
     }
-    
 }
 
 void TestScreen::addWidget(Widget* widget,uint32_t widgetId) {
-    printf("Addin widgets");
+    printf("TestScreen Adding widget %d\n",widgetId);
+    widget->setId(widgetId);
     widgets.push_back(widget);
     if (selectedIndex == -1 && widget->isSelectable()) {
         selectedIndex = widgets.size() - 1;
-        widget->setSelected(true);
+        widget->setSelected(false);
     }
     refresh=Rect2(0,0,158,64);
-
+    printf("TestScreen Added widget,size now %d\n",widgets.size());
 }
 
 void TestScreen::update(uint16_t deltaTimeMS) {
-
     duration += deltaTimeMS;
     accDeltaTimeMS += deltaTimeMS;
-  
     if(accDeltaTimeMS>200){}
-
 }
 
 void TestScreen::draw(Display* display) {
-
-    //funkyV16->drawText(display, title, Vec2((DISPLAY_WIDTH-(funkyV16->getTextWidth(title)))/2, 0), 255, 1);
-
-    // Draw all widgets
-   // for (const Widget* widget : widgets) {
-        //widget->draw(display);
-    //}
-
-    //void draw(Display* d) override {
     printf("drawing %d widgets\n",widgets.size());
-    int widgNo=0;
+    //int widgNo=0;
     for (auto* w : widgets){
-        printf("%d\n",widgNo++);
+        //printf("%d\n",widgNo++);
         w->draw(display);  
     }
-    //}
 }
 
 int TestScreen::keyPressed(uint8_t key) {
-
     if (key == KEY_UP || key == KEY_DOWN) {
-
         if (widgets.empty()) return 0;
         bool normNavig=true;
 
-        int dir = (key == KEY_DOWN) ? 1 : -1;
+        int dir = (key == KEY_DOWN) ? -1 : 1;
         //test if current item is active
         //if active use arrow keys to change value, ok deactivates
-        //if(dynamic_cast<Edit*>(widgets[selectedIndex])->getActive()){
         if(widgets[selectedIndex]->getWidgetType() == WidgetType::Edit){
             if(static_cast<Edit*>(widgets[selectedIndex])->getActive()){
                 normNavig=false;
                 int editVal=static_cast<Edit*>(widgets[selectedIndex])->getValue();
                 editVal=editVal+dir;
                 static_cast<Edit*>(widgets[selectedIndex])->setValue(editVal);
-
             }
         }            
         if(normNavig){
-
             int original = selectedIndex;
-
             do {
                 selectedIndex = (selectedIndex + dir + widgets.size()) % widgets.size();
             } while (!widgets[selectedIndex]->isSelectable() && selectedIndex != original);
@@ -99,15 +61,28 @@ int TestScreen::keyPressed(uint8_t key) {
             }
         }
         refresh=Rect2(0,0,158,64);
-
     } 
     
     else if (key == KEY_OK && selectedIndex != -1) {
-        printf("[TestScreen]Activate\n");
         //if(widgets[selectedIndex]->getWidgetType()==WidgetType::Edit){
-            widgets[selectedIndex]->activate();
-            refresh=Rect2(0,0,158,64);
-
+        if(static_cast<Edit*>(widgets[selectedIndex])->getActive()){
+            printf("[Test] store the value\n");
+            int newVal=static_cast<Edit*>(widgets[selectedIndex])->getValue();            
+            auto& desc = mgr.getDescriptor(scrEnum);
+            for (auto& wd : desc.widgets) {
+                if (wd.widgetId == static_cast<Edit*>(widgets[selectedIndex])->getWidgetId()) {
+                    printf("[Test] storing %d in %d\n",newVal,static_cast<Edit*>(widgets[selectedIndex])->getWidgetId());
+                    wd.initialValue = newVal;
+                    break;
+                }
+            }
+            widgets[selectedIndex]->activate(false); 
+                      
+        }else{
+            widgets[selectedIndex]->activate(true);            
+        }
+        printf("[Test]ok done\n");
+        refresh=Rect2(0,0,158,64);
         //}
     }    
     
@@ -118,9 +93,19 @@ int TestScreen::keyPressed(uint8_t key) {
 }
 
 int TestScreen::keyReleased(uint8_t key) {
-    return 0;
+	return 0;
 }
 
 int TestScreen::keyDown(uint8_t key){
     return 0;
+}
+
+void TestScreen::rebuildFromDescriptor() {
+    printf("[test] rebuildFromDescriptor");
+	widgets.clear();
+	auto& desc = mgr.getDescriptor(scrEnum);
+	for (auto& wd : desc.widgets) {
+		Widget* w = mgr.createWidgetFromDescriptor(wd);
+		widgets.push_back(w);
+	}
 }

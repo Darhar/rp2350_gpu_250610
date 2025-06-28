@@ -1,12 +1,13 @@
 #include <common.h>
 #include <screen.h>
-
+#include <screenManager.hpp>
 
 #define MENUCOUNT 4
 
 class MenuScreen : public Screen
 {
 private:
+    ScreenManager& mgr;
     const uint8_t menuCount = MENUCOUNT;
     const std::string menuItemNames[MENUCOUNT][7] = {
         {"Test", "", "", "", "", "", ""},
@@ -22,7 +23,8 @@ private:
     uint8_t option;
 
 public:
-    MenuScreen();
+    //MenuScreen();
+    MenuScreen(ScreenManager& mgr);
     ~MenuScreen();
 
     void addWidget(Widget* widget,uint32_t widgetId);

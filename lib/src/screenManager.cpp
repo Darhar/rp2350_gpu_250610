@@ -13,11 +13,11 @@ void ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
     // Also init a blank descriptor if you like:
     if (!screenData.count(id)) {
         screenData[id] = ScreenDescriptor{ id, {} };
-        //screenData.emplace(id, ScreenDescriptor{ id, {} });
     }
 }
 
-Widget* createWidgetFromDescriptor(const WidgetDescriptor& wd) {
+Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
+    printf("createWidgetFromDescriptor\n");
     switch (wd.type) {
         case WidgetType::Label:
             // new Label(text, x, y, width, height)
@@ -42,7 +42,7 @@ Widget* createWidgetFromDescriptor(const WidgetDescriptor& wd) {
                 wd.initialText,   // initial contents
                 wd.x, wd.y,
                 wd.width, wd.height,
-                /*maxLength=*/50, // example fixed limit
+                /*value_=*/wd.initialValue,// initial value
                 /*min=*/0,
                 /*max=*/100
             );
@@ -56,18 +56,16 @@ Widget* createWidgetFromDescriptor(const WidgetDescriptor& wd) {
 }
 
 Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
-    // 1) Find the factory
+    printf("buildScreenFromDescriptor :%d\n",id);
     auto curFactory = screenObjects.find(id);
+
     if (curFactory == screenObjects.end()) {
         return nullptr;    // or throw, or fallback
     }
 
-    // 2) Use it to create the right subclass
     Screen* screen = curFactory->second();  
+    ScreenDescriptor& desc = screenData.at(id);
 
-    // 3) Rebuild widgets from the descriptor
-    const auto& desc = screenData.at(id);
-    //auto& desc   = screenData[id];    
     for (auto& wd : desc.widgets) {
         Widget* w = createWidgetFromDescriptor(wd);
         screen->addWidget(w, wd.widgetId);
@@ -84,25 +82,14 @@ void ScreenManager::registerFactory(ScreenEnum id, ScreenFactoryFunc func) {
 }
 
 void ScreenManager::setActiveScreen(ScreenEnum id) {
-    printf("Setting %d\n",id);
-    /*
-    auto it = screenObjects.find(id);
-    if (it != screenObjects.end()) {
-        delete activeScreen;
-        activeScreen = it->second();  // Create new screen with no arguments
-        refresh=Rect2(0,0,DISPLAY_WIDTH,DISPLAY_HEIGHT);
-    }    
-    */
-
+    printf("Setting Activ screen %d\n",id);
     delete activeScreen;
     activeScreen = buildScreenFromDescriptor(id);
 
 }
 
-
-
 ScreenDescriptor& ScreenManager::getDescriptor(ScreenEnum id){
-    return screenData.at(id);
+    return screenData[id];
 }
 
 void ScreenManager::update(uint16_t deltaTimeMS) {

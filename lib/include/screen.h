@@ -19,6 +19,7 @@
         virtual  void addWidget(Widget* widget,uint32_t widgetId)=0;
         virtual ~Screen() {}
         uint8_t screenId = 0;
+        ScreenEnum scrEnum;
         Rect2 refresh;
         std::vector<Widget*> widgets;
     };

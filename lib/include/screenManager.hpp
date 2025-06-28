@@ -2,18 +2,19 @@
 #include "common.h"
 #include <vector>
 #include "screen.h"
+#include <functional>
 
 #define SCREEN_COUNT 2
 
-//ScreenFactoryFunc is a pointer to a function that returns a Screen* and takes no parameters
-using ScreenFactoryFunc = Screen* (*)();
-
+using ScreenFactoryFunc = std::function<Screen*()>;
+ 
 struct WidgetDescriptor {
     WidgetType type;
     uint32_t widgetId;
     std::string initialText;
     int x, y, width, height;
     // additional persistent state…
+    int initialValue;   // for EDITs
 };
 
 struct ScreenDescriptor {
@@ -43,7 +44,8 @@ class ScreenManager {
         void keyDown(uint8_t key);
         void keyReleased(uint8_t key);
         Screen* getActiveScreen();
-        Screen* buildScreenFromDescriptor(ScreenEnum id);        
+        Screen* buildScreenFromDescriptor(ScreenEnum id);   
+        Widget* createWidgetFromDescriptor(const WidgetDescriptor& wd);     
         void nextScreen();
         void previousScreen(); 
         void setRefreshRect(Rect2 refRect);  

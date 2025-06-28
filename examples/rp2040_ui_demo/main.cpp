@@ -25,17 +25,6 @@ static const uint I2C_SLAVE_SCL_PIN = 13; // 5
 static const uint I2C_MASTER_SDA_PIN = 26;
 static const uint I2C_MASTER_SCL_PIN = 27;
 
-/*
-static uint8_t registers[20] = {
-    0xA1, 0x00, 0x01, 0x12, 0x34, 0x56, 0x78, 0xFF,
-    0xA1, 0x00, 0x01, 0x12, 0x34, 0x56, 0x78, 0xFF,
-    0xA1, 0x00, 0x01, 0x12
-};
-static uint8_t selected_register = 0;
-*/
-
-
-//bool shouldSwitchScreen;
 uint8_t newScreenId, newOption;
 
 volatile uint8_t rx_buf[256];
@@ -180,44 +169,47 @@ void core1_entry() {
 }
 
 void registerAllScreens(ScreenManager& mgr) {
-    static ScreenFactoryFunc screenObjects[SCREEN_COUNT] = {
-        []() -> Screen* { return new MenuScreen(); },
-        []() -> Screen* { return new TestScreen(); },
-        //[]() -> Screen* { return new SettingsScreen(); },
-        //[]() -> Screen* { return new AboutScreen(); },
-        //[]() -> Screen* { return new BasicScreen(); },
+    // Build a non-static array so lambdas can capture mgr
+    ScreenFactoryFunc screenObjects[SCREEN_COUNT] = {
+        [&mgr]() -> Screen* { return new MenuScreen(mgr); },
+        [&mgr]() -> Screen* { return new TestScreen(mgr); },
+        //[&mgr]() -> Screen* { return new SettingsScreen(mgr); },
+        //[&mgr]() -> Screen* { return new AboutScreen(mgr); },
+        //[&mgr]() -> Screen* { return new BasicScreen(mgr); },
     };
 
     for (int i = 0; i < SCREEN_COUNT; ++i) {
-
         if (screenObjects[i]) {
             auto id = static_cast<ScreenEnum>(i);
+            // register and immediately get back the descriptor
+            //auto& desc = mgr.registerScreen(id, screenObjects[i]);
             mgr.registerScreen(id, screenObjects[i]);
             auto& desc = mgr.getDescriptor(id);
-            if (desc.widgets.empty()) {
-                if(id==ScreenEnum::TESTSCREEN){
-                     desc.widgets.push_back({
-                        WidgetType::Label,    // type
-                        /*widgetId=*/1,
-                        /*initialText=*/"First Label",
-                        /*x=*/5, /*y=*/15, /*w=*/20, /*h=*/10
-                    });
-                    desc.widgets.push_back({
-                        WidgetType::Button,
-                        /*widgetId=*/2,
-                        /*initialText=*/"Click",  // button label
-                        5, 28, 100, 10
-                    });
-                    desc.widgets.push_back({
-                        WidgetType::Edit,
-                        /*widgetId=*/3,
-                        /*initialText=*/"",       // initial contents
-                        5, 42, 100, 10
-                    });
-                    // any other screen‐level state:
-                    // desc.selectedIndex = 0; 
-                    printf("widgets size:%d\n",desc.widgets.size());
-                }
+            // seed widgets only the first time
+            if (desc.widgets.empty() && id == ScreenEnum::TESTSCREEN) {
+
+                desc.widgets.push_back({
+                    WidgetType::Label,  // type
+                    1,                  // widgetId
+                    "First Label",      // initialText    
+                    0, 0, 20, 10,       // x, y, w, h
+                    0
+                });
+                desc.widgets.push_back({
+                    WidgetType::Button,
+                    2,
+                    "Click",
+                    5, 28, 100, 10,
+                    0
+                });
+                desc.widgets.push_back({
+                    WidgetType::Edit,
+                    3,
+                    "",     // no initial text, we'll use initialValue if int-based
+                    5, 42, 100, 10,
+                    20
+                });
+                printf("widgets size:%zu\n", desc.widgets.size());
             }
         }
     }

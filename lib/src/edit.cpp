@@ -1,17 +1,19 @@
 #include "edit.h"
 #include <iostream>
 
-Edit::Edit(const std::string& text, int x, int y, int width, int height,int value_,int mn, int mx)
-    : Widget(text,x, y, width, height), value(value_),minValue(mn),maxValue(mx) {
-
+Edit::Edit(const std::string& text, int x, int y, int width, int height, int value_, int mn, int mx)
+    : Widget(text, x, y, width, height), value(value_), minValue(mn), maxValue(mx) 
+{
     widgetType = WidgetType::Edit;
-    buttSize=Size2(buttWidth,boundingBox.h);
-    buttonPos=Vec2(boundingBox.x+boundingBox.w-buttSize.w,boundingBox.y);
-    butRect=Rect2(buttonPos,buttSize);
-    active=false;
+    buttSize = Size2(buttWidth, boundingBox.h);
+    buttonPos = Vec2(boundingBox.x + boundingBox.w - buttSize.w, boundingBox.y);
+    butRect = Rect2(buttonPos, buttSize);
+    active = false;
 }
 
+
 void Edit::draw(Display *disp) const {
+    printf("draw Edit\n");
 
     //label
     ariel5x8->drawText(disp, label, Vec2(boundingBox.x, boundingBox.y), 255, 1);
@@ -34,9 +36,17 @@ void Edit::setValue(int val){
         else value=val;
 }
 
-void Edit::activate() { 
+void Edit::activate(bool activ) { 
+    setActive(activ);
     printf("[Edit] %d active:%d,\n",widgetType,getActive());
+ 
+}
+void Edit::activateToggle() { 
+    printf("[Edit] activeToggle,\n");
     setActive(!getActive());
     printf("[Edit] %d active:%d,\n",widgetType,getActive());
  
 }
+
+int   Edit::getValue()   const { return value; }
+

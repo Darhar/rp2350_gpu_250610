@@ -15,6 +15,9 @@ struct WidgetDescriptor {
     int x, y, width, height;
     // additional persistent state…
     int initialValue;   // for EDITs
+    bool toggleState = false;
+    std::string labelOn = "ON";
+    std::string labelOff = "OFF";   
 };
 
 struct ScreenDescriptor {

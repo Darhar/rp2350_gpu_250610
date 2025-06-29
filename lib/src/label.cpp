@@ -4,10 +4,11 @@
 Label::Label(const std::string& text, int x, int y, int width, int height)
     : Widget(text, x, y, width, height) {
         widgetType = WidgetType::Label;
+        selectable = false;    // explicit but optional
     }
 
 void Label::draw(Display *disp) const {
-    printf("draw label\n");
+    //printf("draw label\n");
     if (selected) {
         disp->setInverted(true);
     } else {
@@ -17,6 +18,4 @@ void Label::draw(Display *disp) const {
 
 }
 
-void Label::activate() {
-    
-}
+

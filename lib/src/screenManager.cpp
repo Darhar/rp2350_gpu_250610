@@ -29,7 +29,8 @@ Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
 
         case WidgetType::Button:
             // For a button you might want to store the “action” text
-            return new Button(
+            return new Button
+            (
                 wd.initialText,   // button caption
                 wd.x, wd.y,
                 wd.width, wd.height,
@@ -56,7 +57,7 @@ Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
 }
 
 Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
-    printf("buildScreenFromDescriptor :%d\n",id);
+    printf("buildScreenFromDescriptor screen:%d\n",id);
     auto curFactory = screenObjects.find(id);
 
     if (curFactory == screenObjects.end()) {
@@ -64,12 +65,14 @@ Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
     }
 
     Screen* screen = curFactory->second();  
-    ScreenDescriptor& desc = screenData.at(id);
+    /*
+        ScreenDescriptor& desc = screenData.at(id);
 
-    for (auto& wd : desc.widgets) {
-        Widget* w = createWidgetFromDescriptor(wd);
-        screen->addWidget(w, wd.widgetId);
-    }
+        for (auto& wd : desc.widgets) {
+            Widget* w = createWidgetFromDescriptor(wd);
+            screen->addWidget(w, wd.widgetId);
+        }    
+    */
 
     // 4) (Optionally) restore any screen-level state:
     //    e.g. screen->setSelected(desc.selectedIndex);
@@ -82,7 +85,7 @@ void ScreenManager::registerFactory(ScreenEnum id, ScreenFactoryFunc func) {
 }
 
 void ScreenManager::setActiveScreen(ScreenEnum id) {
-    printf("Setting Activ screen %d\n",id);
+    printf("Setting Active screen %d\n",id);
     delete activeScreen;
     activeScreen = buildScreenFromDescriptor(id);
 
@@ -116,7 +119,7 @@ void ScreenManager::keyPressed(uint8_t key) {
         }else if(cmd==KeyReturn::SCRBACK){
             setActiveScreen(MENUSCREEN);
         }
-        printf("Key return:%d\n",keyReturn);
+        //printf("Key return:%d\n",keyReturn);
     }
 }
 

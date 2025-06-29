@@ -1,14 +1,14 @@
 #include "testscreen.h"
 
 TestScreen::~TestScreen() {
-    printf("deleting widgets\n");
+    //printf("deleting widgets\n");
     for (Widget* widget : widgets) {
         delete widget;
     }
 }
 
 void TestScreen::addWidget(Widget* widget,uint32_t widgetId) {
-    printf("TestScreen Adding widget %d\n",widgetId);
+    //printf("TestScreen Adding widget %d\n",widgetId);
     widget->setId(widgetId);
     widgets.push_back(widget);
     if (selectedIndex == -1 && widget->isSelectable()) {
@@ -26,12 +26,45 @@ void TestScreen::update(uint16_t deltaTimeMS) {
 }
 
 void TestScreen::draw(Display* display) {
-    printf("drawing %d widgets\n",widgets.size());
+    //printf("drawing %d widgets\n",widgets.size());
     //int widgNo=0;
     for (auto* w : widgets){
         //printf("%d\n",widgNo++);
         w->draw(display);  
     }
+}
+
+void TestScreen::buildFromDescriptor() {
+    printf("[test] rebuildFromDescriptor\n");
+	widgets.clear();
+    selectedIndex = -1;
+
+	auto& desc = mgr.getDescriptor(scrEnum);
+
+	for (auto& wd : desc.widgets) {
+		Widget* w = mgr.createWidgetFromDescriptor(wd);
+        if (!w) continue;
+        addWidget(w, wd.widgetId);
+	}
+}
+
+void TestScreen::commitActiveEditValue() {
+    auto* w = widgets[selectedIndex];
+    if (w->getWidgetType() != WidgetType::Edit) return;
+
+    Edit* edit = static_cast<Edit*>(w);
+    if (!edit->isActive()) return;
+
+    int val = edit->getValue();
+    auto& desc = mgr.getDescriptor(scrEnum);
+    for (auto& wd : desc.widgets) {
+        if (wd.widgetId == edit->getWidgetId()) {
+            wd.initialValue = val;
+            break;
+        }
+    }
+
+    edit->setActive(false);
 }
 
 int TestScreen::keyPressed(uint8_t key) {
@@ -43,7 +76,7 @@ int TestScreen::keyPressed(uint8_t key) {
         //test if current item is active
         //if active use arrow keys to change value, ok deactivates
         if(widgets[selectedIndex]->getWidgetType() == WidgetType::Edit){
-            if(static_cast<Edit*>(widgets[selectedIndex])->getActive()){
+            if(static_cast<Edit*>(widgets[selectedIndex])->isActive()){
                 normNavig=false;
                 int editVal=static_cast<Edit*>(widgets[selectedIndex])->getValue();
                 editVal=editVal+dir;
@@ -58,33 +91,33 @@ int TestScreen::keyPressed(uint8_t key) {
 
             for (size_t i = 0; i < widgets.size(); ++i) {
                 widgets[i]->setSelected(i == selectedIndex);
+                printf("widget %d is a %d",i, widgets[i]->getWidgetType());
+                if(i == selectedIndex){printf(" and selected\n");}else{printf("\n");}
             }
         }
         refresh=Rect2(0,0,158,64);
     } 
+
+else if (key == KEY_OK && selectedIndex != -1) {
+    Widget* w = widgets[selectedIndex];
+
+
     
-    else if (key == KEY_OK && selectedIndex != -1) {
-        //if(widgets[selectedIndex]->getWidgetType()==WidgetType::Edit){
-        if(static_cast<Edit*>(widgets[selectedIndex])->getActive()){
-            printf("[Test] store the value\n");
-            int newVal=static_cast<Edit*>(widgets[selectedIndex])->getValue();            
-            auto& desc = mgr.getDescriptor(scrEnum);
-            for (auto& wd : desc.widgets) {
-                if (wd.widgetId == static_cast<Edit*>(widgets[selectedIndex])->getWidgetId()) {
-                    printf("[Test] storing %d in %d\n",newVal,static_cast<Edit*>(widgets[selectedIndex])->getWidgetId());
-                    wd.initialValue = newVal;
-                    break;
-                }
-            }
-            widgets[selectedIndex]->activate(false); 
-                      
-        }else{
-            widgets[selectedIndex]->activate(true);            
+    if (w->getWidgetType() == WidgetType::Edit) {
+        Edit* edit = static_cast<Edit*>(w);
+
+        if (edit->isActive()) {
+            // Commit value to descriptor
+            commitActiveEditValue(); 
+        } else {
+            // Activate it for editing
+            edit->setActive(true);
         }
-        printf("[Test]ok done\n");
-        refresh=Rect2(0,0,158,64);
-        //}
-    }    
+
+        refresh = Rect2(0, 0, 158, 64);  // mark for redraw
+    }
+}
+  
     
     else if(key == KEY_BACK){
         return encodeKeyReturn(KeyReturn::SCRSELECT, ScreenEnum::MENUSCREEN);
@@ -98,14 +131,4 @@ int TestScreen::keyReleased(uint8_t key) {
 
 int TestScreen::keyDown(uint8_t key){
     return 0;
-}
-
-void TestScreen::rebuildFromDescriptor() {
-    printf("[test] rebuildFromDescriptor");
-	widgets.clear();
-	auto& desc = mgr.getDescriptor(scrEnum);
-	for (auto& wd : desc.widgets) {
-		Widget* w = mgr.createWidgetFromDescriptor(wd);
-		widgets.push_back(w);
-	}
 }

@@ -855,3 +855,4 @@ it->second() means “call the factory associated with this ScreenEnum and retur
 freshly new-allocated instance of the concrete Screen subclass (e.g. new TestScreen())..”
 
 //----250621---- screen descriptors working
+//----250629 --- persistent values working

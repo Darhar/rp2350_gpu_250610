@@ -192,22 +192,27 @@ void registerAllScreens(ScreenManager& mgr) {
                     WidgetType::Label,  // type
                     1,                  // widgetId
                     "First Label",      // initialText    
-                    0, 0, 20, 10,       // x, y, w, h
-                    0
+                    0, 0, 100, 10,       // x, y, w, h
+                    0                   // selectable
                 });
                 desc.widgets.push_back({
                     WidgetType::Button,
-                    2,
-                    "Click",
-                    5, 28, 100, 10,
-                    0
+                    1,
+                    "WiFi",      // label
+                    10, 20, 80, 12,
+                    true,        // selectable
+                    0, 0, 0,     // irrelevant Edit fields
+                    true,        // toggleState
+                    "ON", "OFF"
                 });
                 desc.widgets.push_back({
                     WidgetType::Edit,
-                    3,
-                    "",     // no initial text, we'll use initialValue if int-based
-                    5, 42, 100, 10,
-                    20
+                    2,
+                    "Volume",
+                    10, 35, 80, 12,
+                    true,
+                    50, 0, 100,  // initialValue, minValue, maxValue
+                    false, "", "" // irrelevant Button fields
                 });
                 printf("widgets size:%zu\n", desc.widgets.size());
             }

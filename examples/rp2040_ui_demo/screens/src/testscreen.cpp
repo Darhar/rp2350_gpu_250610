@@ -13,7 +13,7 @@ void TestScreen::addWidget(Widget* widget,uint32_t widgetId) {
     widgets.push_back(widget);
     if (selectedIndex == -1 && widget->isSelectable()) {
         selectedIndex = widgets.size() - 1;
-        widget->setSelected(false);
+        widget->setSelected(true);
     }
     refresh=Rect2(0,0,158,64);
     printf("TestScreen Added widget,size now %d\n",widgets.size());
@@ -35,7 +35,7 @@ void TestScreen::draw(Display* display) {
 }
 
 void TestScreen::buildFromDescriptor() {
-    printf("[test] rebuildFromDescriptor\n");
+    printf("[test] buildFromDescriptor\n");
 	widgets.clear();
     selectedIndex = -1;
 
@@ -50,21 +50,28 @@ void TestScreen::buildFromDescriptor() {
 
 void TestScreen::commitActiveEditValue() {
     auto* w = widgets[selectedIndex];
-    if (w->getWidgetType() != WidgetType::Edit) return;
-
-    Edit* edit = static_cast<Edit*>(w);
-    if (!edit->isActive()) return;
-
-    int val = edit->getValue();
     auto& desc = mgr.getDescriptor(scrEnum);
-    for (auto& wd : desc.widgets) {
-        if (wd.widgetId == edit->getWidgetId()) {
-            wd.initialValue = val;
-            break;
-        }
-    }
 
-    edit->setActive(false);
+    if (w->getWidgetType() == WidgetType::Button) {
+        Button* btn = static_cast<Button*>(w);
+        for (auto& wd : desc.widgets) {
+            if (wd.widgetId == btn->getWidgetId()) {
+                wd.toggleState = btn->getState();
+            }
+        }
+    }else if (w->getWidgetType() == WidgetType::Edit){
+        Edit* edit = static_cast<Edit*>(w);
+        if (!edit->isActive()) return;
+
+        int val = edit->getValue();
+        for (auto& wd : desc.widgets) {
+            if (wd.widgetId == edit->getWidgetId()) {
+                wd.initialValue = val;
+                break;
+            }
+        }
+        edit->setActive(false);        
+    }else return;
 }
 
 int TestScreen::keyPressed(uint8_t key) {
@@ -101,8 +108,13 @@ int TestScreen::keyPressed(uint8_t key) {
 else if (key == KEY_OK && selectedIndex != -1) {
     Widget* w = widgets[selectedIndex];
 
+    if (w->getWidgetType() == WidgetType::Button) {
+        Button* btn = static_cast<Button*>(w);
+        btn->toggle();
+        commitActiveEditValue();
+        refresh = Rect2(0, 0, 158, 64);
+    }
 
-    
     if (w->getWidgetType() == WidgetType::Edit) {
         Edit* edit = static_cast<Edit*>(w);
 

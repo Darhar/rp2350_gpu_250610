@@ -22,31 +22,25 @@ Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
         case WidgetType::Label:
             // new Label(text, x, y, width, height)
             return new Label(
-                wd.initialText,
+                wd.label,
                 wd.x, wd.y,
                 wd.width, wd.height
             );
 
         case WidgetType::Button:
-            // For a button you might want to store the “action” text
-            return new Button
-            (
-                wd.initialText,   // button caption
-                wd.x, wd.y,
-                wd.width, wd.height,
-                wd.initialText    // or wd.actionText if you have one
-            );
+            return new Button(
+                wd.label, 
+                wd.captionOn, 
+                wd.captionOff,
+                wd.x, wd.y, wd.width, wd.height,
+                wd.toggleState);
 
         case WidgetType::Edit:
-            // For an edit field you might also persist min/max or cursor pos
             return new Edit(
-                wd.initialText,   // initial contents
-                wd.x, wd.y,
-                wd.width, wd.height,
-                /*value_=*/wd.initialValue,// initial value
-                /*min=*/0,
-                /*max=*/100
-            );
+                wd.label,
+                wd.x, wd.y, wd.width, wd.height,
+                wd.initialValue,
+                wd.minValue, wd.maxValue);
 
         // … handle other widget types …
 

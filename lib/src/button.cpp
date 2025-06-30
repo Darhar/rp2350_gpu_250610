@@ -1,7 +1,7 @@
 #include "button.h"
 #include <iostream>
 
-Button::Button(const std::string& text, int x, int y, int width, int height,const std::string& caption_)
+/*Button::Button(const std::string& text, int x, int y, int width, int height,const std::string& caption_)
     : Widget(text,x, y, width, height), caption(caption_) {
     //printf("Size of caption %s=%d\n",caption.c_str(),caption.size());
     widgetType = WidgetType::Button;
@@ -10,6 +10,33 @@ Button::Button(const std::string& text, int x, int y, int width, int height,cons
     butRect=Rect2(buttonPos,buttSize);
     selectable = true; 
     active     = false; 
+}*/
+Button::Button(const std::string& label,
+               const std::string& captionOn,
+               const std::string& captionOff,
+               int x, int y, int w, int h,
+               bool initialState)
+    : Widget(label, x, y, w, h),
+      captionOn(captionOn),
+      captionOff(captionOff),
+      state(initialState)
+{
+    caption = state ? captionOn : captionOff;
+    selectable = true;
+    widgetType = WidgetType::Button;
+    buttSize=Size2(buttWidth,boundingBox.h);
+    buttonPos=Vec2(boundingBox.x+boundingBox.w-buttSize.w,boundingBox.y);
+    butRect=Rect2(buttonPos,buttSize); 
+    
+}
+
+void Button::toggle() {
+    state = !state;
+    caption = state ? captionOn : captionOff;
+}
+
+const std::string& Button::getCaption() const {
+    return caption;
 }
 
 void Button::draw(Display *disp) const {
@@ -19,6 +46,7 @@ void Button::draw(Display *disp) const {
 
 void Button::buttonGraphic(Display *disp) const{
     if(selected) printf("but selected\n");
+
     ariel5x8->drawText(disp, label, Vec2(boundingBox.x, boundingBox.y), 255, 1);
     disp->setInverted(selected);
     disp->fillRect(butRect,  0, 255);
@@ -26,5 +54,7 @@ void Button::buttonGraphic(Display *disp) const{
     //text    
     ariel5x8->drawText(disp, caption, Vec2(buttonPos.x+(buttWidth-(caption.size()*5))/2, buttonPos.y+2), 255, 1);
     disp->setInverted(false);
+
+
 }
 

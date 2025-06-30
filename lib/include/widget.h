@@ -26,7 +26,7 @@ public:
     void setId(uint32_t wi){id=wi;}  
     virtual void draw(Display *display) const = 0; // Pure virtual function
     virtual ~Widget();
-
+    const std::string& getLabel() const { return label; }
 
     virtual void setSelected(bool s)  { if (selectable) selected = s; }
     virtual bool isSelected()  const { if (selectable) return selected; return false;}

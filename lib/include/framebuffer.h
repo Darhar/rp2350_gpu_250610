@@ -35,8 +35,6 @@ class FrameBuffer {
 	//void drawSphere(int radius, Vec2 pos, uint8_t  &c, uint8_t alpha = 255);
     void triangle(Vec2 p0, Vec2 p1, Vec2 p2, uint8_t  c, uint8_t alpha = 255);
     void fillTriangle(Vec2 p0, Vec2 p1, Vec2 p2, uint8_t  c, uint8_t alpha = 255);
-   /* 
-    */
 
 };
 

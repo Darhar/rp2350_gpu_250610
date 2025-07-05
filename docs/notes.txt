@@ -856,3 +856,20 @@ freshly new-allocated instance of the concrete Screen subclass (e.g. new TestScr
 
 //----250621---- screen descriptors working
 //----250629 --- persistent values working
+//----250701 --- label, button and edit widget working correctly
+
+----- todo soon
+test spi connection is working
+work out what should controllable via spi
+design and create other widgets, gui elements
+create other pages
+
+---Adding serial debug interface
+created Debug class
+serial commands for 
+    memory usage, 
+    viewing memory at address
+    viewing variables
+    viewing frame buffer 
+
+--- setting screen

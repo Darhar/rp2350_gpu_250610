@@ -11,6 +11,7 @@ add_library(i2c_ui_lib
   src/screenManager.cpp
   src/sprite.cpp
   src/widget.cpp
+  src/debug.cpp
 )
 
 target_include_directories(i2c_ui_lib
@@ -25,5 +26,5 @@ target_link_libraries(i2c_ui_lib
     hardware_dma
     hardware_adc
     hardware_i2c  
-    pico_multicore         
+    pico_multicore        
 )

@@ -68,6 +68,9 @@
         public:
             Display();
             ~Display();
+            uint8_t* getFrameBufferPtr() const {
+                return frameBuffer ? frameBuffer->getBuffer() : nullptr;
+            }            
             void setRefresh(bool refr);
             void setupIO();
             void setPinU(uint8_t pin,uint8_t state,unsigned int len);

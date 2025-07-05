@@ -14,6 +14,7 @@
 #include "i2c_obj.hpp"
 #include "command_factory.hpp"
 #include "screenManager.hpp"
+#include "debug.h"
 
 #define FLAG_VALUE 123
 
@@ -37,6 +38,9 @@ uint8_t recv_buffer[MAX_BUFFER];
 volatile int recv_index = 0;
 
 ScreenManager screenMgr;
+Debug debug;
+uint32_t myCounter = 123;
+uint8_t statusFlag = 1;
 
 void setup_master(){
     gpio_init(I2C_MASTER_SDA_PIN);
@@ -163,7 +167,7 @@ void core1_entry() {
         //run_master();        
         //printf("core1 %d\n");  
         Screen* thisScreen=screenMgr.getActiveScreen();
-        printf("%d:scr id:%d\n",dbCount++,thisScreen->screenId);
+        //printf("%d:scr id:%d\n",dbCount++,thisScreen->screenId);
         sleep_ms(5000);
     }
 }
@@ -192,7 +196,7 @@ void registerAllScreens(ScreenManager& mgr) {
                     WidgetType::Label,  // type
                     1,                  // widgetId
                     "First Label",      // initialText    
-                    0, 0, 100, 10,       // x, y, w, h
+                    0, 1, 100, 10,       // x, y, w, h
                     0                   // selectable
                 });
                 desc.widgets.push_back({
@@ -222,14 +226,26 @@ void registerAllScreens(ScreenManager& mgr) {
 
 int main()
 {
+
     stdio_init_all();
     srand((unsigned int)time(0));
 	uint32_t msSinceBoot=to_ms_since_boot(get_absolute_time());
-    Display *display=new Display();
-	sleep_ms(5000);
-    printf("Starting\n");
-    KeyBoard *keyboard = new KeyBoard();
+    debug.registerVar("counter", &myCounter, sizeof(myCounter));
+    debug.registerVar("status", &statusFlag, sizeof(statusFlag));
 
+    Display *display=new Display();
+    debug.setDisplay(display);
+    debug.registerVar("fb", display->getFrameBufferPtr(), DISPLAY_WIDTH*DISPLAY_HEIGHT);    
+	//sleep_ms(5000);
+    printf("Starting\n");
+    debug.printHelp();
+    KeyBoard *keyboard = new KeyBoard();
+    //debug.init();
+    while (!stdio_usb_connected()) {
+        sleep_ms(10);  // Wait for USB host to open the port
+    }
+    printf("Debug console ready.\n");
+    printf("addr :%x\n",&myCounter);
     timetype lastUpdate = getTime();
     //display->clearBg();
     display->clear(0);
@@ -255,7 +271,7 @@ int main()
         
         uint16_t deltaTimeMS = getTimeDiffMS(lastUpdate);
         lastUpdate = getTime();
-         
+         debug.poll();
         keyboard->checkKeyState(&screenMgr);
         screenMgr.update(deltaTimeMS);
         if(screenMgr.needRefresh()){

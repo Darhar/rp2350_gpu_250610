@@ -1,15 +1,5 @@
 #include "aboutscreen.h"
 int scrollMax=420;
-AboutScreen::AboutScreen() {
-    printf("[AboutScreen] loading...\n");
-    screenId = ScreenEnum::ABOUTSCREEN;
-    //returnCallBack = rcb;
-    option = option;
-    scroll = 0;
-    refresh=Rect2(0,0,158,64);
-
-    printf("[AboutScreen] Done\n");
-}
 
 AboutScreen::~AboutScreen() {}
 
@@ -21,7 +11,6 @@ void AboutScreen::update(uint16_t deltaTimeMS) {
             scroll = 0;
         lastUpdate = getTime();
         refresh=Rect2(0,0,158,64);
-
     }
 }
 

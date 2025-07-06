@@ -1,14 +1,5 @@
 #include "basicscreen.h"
 
-BasicScreen::BasicScreen() {
-    printf("[BasicScreen] loading...\n");
-    screenId = ScreenEnum::BASICSCREEN;
-    option = option;
-    title =  "Basic Screen";
-    refresh=Rect2(0,0,158,64);
-    printf("[BasicScreen] Done\n");
-}
-
 BasicScreen::~BasicScreen() {}
 
 void BasicScreen::update(uint16_t deltaTimeMS) {}

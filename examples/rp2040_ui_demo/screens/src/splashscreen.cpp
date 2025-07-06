@@ -1,20 +1,5 @@
 #include "splashscreen.h"
 
-SplashScreen::SplashScreen() {
-    printf("[SplashScreen] loading...\n");
-    posX=10;
-    posY=10;
-    dirX=2;
-    dirY=2;
-    title =  "Splash Screen";
-    title1 = "Arial5x8 Font";
-    title2 = "Terminal 6x9 Font";
-    ball00=new Sprite(logoSprite,Vec2(10,10),Vec2(1,1));
-    duration=0; 
-    refresh=Rect2(0,0,158,64);    
-    funkyV16->setClearSpace(true);
-}
-
 SplashScreen::~SplashScreen() {
     printf("[SplashScreen] Destructing\n");
 }
@@ -50,7 +35,6 @@ void SplashScreen::update(uint16_t deltaTimeMS) {
         accDeltaTimeMS=0;
         title2="         ";
         refresh=Rect2(0,0,158,64);
-
     }
 }
 

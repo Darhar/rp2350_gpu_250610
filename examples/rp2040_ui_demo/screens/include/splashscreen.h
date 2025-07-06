@@ -16,11 +16,27 @@ private:
     std::string title1;
     std::string title2;
     Sprite *ball00;
+    int selectedIndex = -1;
+    ScreenManager& mgr;
 
 public:
-    SplashScreen();
+    SplashScreen(ScreenManager& mgr) : mgr(mgr){
+        printf("[SplashScreen] loading...\n");
+        screenId = ScreenEnum::SPLASHSCREEN;
+        posX=10;
+        posY=10;
+        dirX=2;
+        dirY=2;
+        title =  "Splash Screen";
+        title1 = "Arial5x8 Font";
+        title2 = "Terminal 6x9 Font";
+        ball00=new Sprite(logoSprite,Vec2(10,10),Vec2(1,1));
+        duration=0; 
+        refresh=Rect2(0,0,158,64);    
+        funkyV16->setClearSpace(true);
+    }
     ~SplashScreen();
-
+	//void addWidget(Widget* widget,uint32_t widgetId);
     void update(uint16_t deltaTimeMS);
     void draw(Display *display);
     int keyPressed(uint8_t key);

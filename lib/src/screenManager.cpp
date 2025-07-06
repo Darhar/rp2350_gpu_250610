@@ -8,12 +8,12 @@ ScreenManager::~ScreenManager() {
     delete activeScreen;
 }
 
-void ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
-    screenObjects[id] = std::move(factory);
-    // Also init a blank descriptor if you like:
-    if (!screenData.count(id)) {
-        screenData[id] = ScreenDescriptor{ id, {} };
-    }
+ScreenDescriptor& ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
+  screenObjects[id] = std::move(factory);
+  auto& desc = screenData[id];
+  desc.id    = id;
+  screenCount++;
+  return desc;
 }
 
 Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
@@ -59,14 +59,6 @@ Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
     }
 
     Screen* screen = curFactory->second();  
-    /*
-        ScreenDescriptor& desc = screenData.at(id);
-
-        for (auto& wd : desc.widgets) {
-            Widget* w = createWidgetFromDescriptor(wd);
-            screen->addWidget(w, wd.widgetId);
-        }    
-    */
 
     // 4) (Optionally) restore any screen-level state:
     //    e.g. screen->setSelected(desc.selectedIndex);
@@ -133,12 +125,12 @@ Screen* ScreenManager::getActiveScreen(){
 }
 
 void ScreenManager::nextScreen() {
-    currentScreen = static_cast<ScreenEnum>((currentScreen + 1) % SCREEN_COUNT);
+    currentScreen = static_cast<ScreenEnum>((currentScreen + 1) % screenCount);
     setActiveScreen(currentScreen);
 }
 
 void ScreenManager::previousScreen() {
-    currentScreen = static_cast<ScreenEnum>((currentScreen + SCREEN_COUNT - 1) % SCREEN_COUNT);
+    currentScreen = static_cast<ScreenEnum>((currentScreen + screenCount - 1) % screenCount);
     setActiveScreen(currentScreen);
 }
 

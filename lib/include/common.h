@@ -26,7 +26,6 @@
 	#define DISPBUFSIZE 1412
 
 	#include "intmath.h"
-   
 	#include "logoSprite.h"          
 	#include "funkV16_font.h"
 	#include "areil5x8_font.h"
@@ -43,52 +42,7 @@
 	extern Image *term6x9;
 	extern Image *ariel5x8;
 
-	typedef struct {
-		float x, y, z;
-	} Vector3;
-
-	struct vec3 { 
-		float x; 
-		float y; 
-		float z; 
-	
-		vec3 operator+(const vec3& other) const { 
-			return { x + other.x, y + other.y, z + other.z }; 
-		} 
-	
-		vec3 operator-(const vec3& other) const { 
-			return { x - other.x, y - other.y, z - other.z }; 
-		} 
-	
-		vec3 operator-() const { 
-			return { -x, -y, -z }; 
-		} 
-	
-		vec3 operator*(const float& scalar) const { 
-			return { x * scalar, y * scalar, z * scalar }; 
-		} 
-	
-		vec3 operator/(const float& scalar) const { 
-			return { x / scalar, y / scalar, z / scalar }; 
-		} 
-	
-		float dot(const vec3& other) const { 
-			return x * other.x + y * other.y + z * other.z; 
-		} 
-	
-		float len() const { 
-			return sqrtf(this->dot(*this)); 
-		} 
-	
-		void normalize() { 
-			float len = this->len(); 
-			x /= len; 
-			y /= len; 
-			z /= len; 
-		} 
-	}; 
-
-	enum KeyReturn {NONE,SCRSELECT,SCRBACK};
+ 	enum KeyReturn {NONE,SCRSELECT,SCRBACK};
 
 	int encodeKeyReturn(KeyReturn cmd, uint8_t id);
 	KeyReturn decodeKeyCommand(int packed);

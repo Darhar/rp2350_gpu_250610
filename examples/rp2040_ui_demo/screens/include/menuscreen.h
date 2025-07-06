@@ -2,7 +2,7 @@
 #include <screen.h>
 #include <screenManager.hpp>
 
-#define MENUCOUNT 4
+#define MENUCOUNT 5
 
 class MenuScreen : public Screen
 {
@@ -13,7 +13,8 @@ private:
         {"Test", "", "", "", "", "", ""},
         {"Settings", "", "", "", "", "", ""},
         {"About", "", "", "", "", "", ""},
-        {"Basic", "", "", "", "", "", ""}
+        {"Basic", "", "", "", "", "", ""},
+        {"Splash", "", "", "", "", "", ""}
     };
     uint16_t duration, lastTime,accDeltaTimeMS;
     uint8_t selectedMenuItem, currentMenuItem, animationCounter;
@@ -27,7 +28,7 @@ public:
     MenuScreen(ScreenManager& mgr);
     ~MenuScreen();
 
-    void addWidget(Widget* widget,uint32_t widgetId);
+   // void addWidget(Widget* widget,uint32_t widgetId);
     void update(uint16_t deltaTimeMS);
     void draw(Display *display);
     int keyPressed(uint8_t key);

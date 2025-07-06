@@ -1,35 +1,13 @@
 #include "settingsscreen.h"
 
-std::vector<std::string> menuA 
-{
-    "Item A" ,
-    "Item B" ,
-    "Item C" ,
-    "Item D" ,
-    "Item E" ,
-    "Item f", 
-    "Item g",
-    "Item h",
-    "Item i"
-};  
-
-SettingsScreen::SettingsScreen() {
-    printf("[SettingsScreen] loading...\n");
-    screenId = ScreenEnum::SETTINGSSCREEN;
-    //returnCallBack = rcb;
-    option = option;
-    title =  "Splash Screen";
-    menu1=new Menu(menuA,40);
-    refresh=Rect2(0,0,158,64);
-
-    printf("[SettingsScreen] Done\n");
+SettingsScreen::~SettingsScreen() {
+    //printf("deleting widgets\n");
+    for (Widget* widget : widgets) {
+        delete widget;
+    }    
 }
 
-SettingsScreen::~SettingsScreen() {}
-
-void SettingsScreen::update(uint16_t deltaTimeMS) {
-
-}
+void SettingsScreen::update(uint16_t deltaTimeMS) {}
 
 void SettingsScreen::draw(Display *disp) {
     menu1->draw(disp);

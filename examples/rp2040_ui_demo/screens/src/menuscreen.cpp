@@ -23,10 +23,6 @@ MenuScreen::~MenuScreen() {
     printf("[MenuScreen] Destructing\n");
 }
 
-void MenuScreen::addWidget(Widget* widget,uint32_t widgetId){
-
-}
-
 void MenuScreen::update(uint16_t deltaTimeMS) {
     duration += deltaTimeMS;
     accDeltaTimeMS += deltaTimeMS;

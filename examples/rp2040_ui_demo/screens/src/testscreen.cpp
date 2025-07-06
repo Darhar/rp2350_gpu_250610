@@ -1,22 +1,26 @@
 #include "testscreen.h"
 
+TestScreen::TestScreen(ScreenManager& mgr)
+  : mgr(mgr), scrEnum(ScreenEnum::TESTSCREEN){
+
+    printf("[Test] constructor\n");
+    // 1) Let TestScreen seed its own descriptor
+    seedDescriptor(mgr);
+    screenId = scrEnum;
+    // build widgets once from the descriptor
+    rebuildFromDescriptor();
+    title =  "Test Screen";
+    duration=0; 
+    funkyV16->setClearSpace(true);
+    refresh=Rect2(0,0,158,64);
+    //printf("[test] Started\n");
+}
+
 TestScreen::~TestScreen() {
     //printf("deleting widgets\n");
     for (Widget* widget : widgets) {
         delete widget;
     }
-}
-
-void TestScreen::addWidget(Widget* widget,uint32_t widgetId) {
-    //printf("TestScreen Adding widget %d\n",widgetId);
-    widget->setId(widgetId);
-    widgets.push_back(widget);
-    if (selectedIndex == -1 && widget->isSelectable()) {
-        selectedIndex = widgets.size() - 1;
-        widget->setSelected(true);
-    }
-    refresh=Rect2(0,0,158,64);
-    printf("TestScreen Added widget,size now %d\n",widgets.size());
 }
 
 void TestScreen::update(uint16_t deltaTimeMS) {
@@ -33,19 +37,45 @@ void TestScreen::draw(Display* display) {
         w->draw(display);  
     }
 }
-
-void TestScreen::buildFromDescriptor() {
-    printf("[test] buildFromDescriptor\n");
-	widgets.clear();
-    selectedIndex = -1;
-
-	auto& desc = mgr.getDescriptor(scrEnum);
-
-	for (auto& wd : desc.widgets) {
-		Widget* w = mgr.createWidgetFromDescriptor(wd);
-        if (!w) continue;
+void TestScreen::rebuildFromDescriptor() {
+    widgets.clear();
+    auto& desc = mgr.getDescriptor(scrEnum);
+    for (auto& wd : desc.widgets) {
+        Widget* w = mgr.createWidgetFromDescriptor(wd);
         addWidget(w, wd.widgetId);
-	}
+    }
+}
+
+void TestScreen::seedDescriptor(ScreenManager& mgr) {
+    auto& desc = mgr.getDescriptor(scrEnum);
+    if (desc.widgets.empty()) {
+        desc.widgets.push_back({
+            WidgetType::Label,  // type
+            1,                  // widgetId
+            "First Label",      // initialText    
+            0, 1, 100, 10,       // x, y, w, h
+            0                   // selectable
+        });
+        desc.widgets.push_back({
+            WidgetType::Button,
+            1,
+            "WiFi",      // label
+            10, 20, 80, 12,
+            true,        // selectable
+            0, 0, 0,     // irrelevant Edit fields
+            true,        // toggleState
+            "ON", "OFF"
+        });
+        desc.widgets.push_back({
+            WidgetType::Edit,
+            2,
+            "Volume",
+            10, 35, 80, 12,
+            true,
+            50, 0, 100,  // initialValue, minValue, maxValue
+            false, "", "" // irrelevant Button fields
+        });
+    }
 }
 
 void TestScreen::commitActiveEditValue() {
@@ -105,32 +135,33 @@ int TestScreen::keyPressed(uint8_t key) {
         refresh=Rect2(0,0,158,64);
     } 
 
-else if (key == KEY_OK && selectedIndex != -1) {
-    Widget* w = widgets[selectedIndex];
+    else if (key == KEY_OK && selectedIndex != -1) {
+        Widget* w = widgets[selectedIndex];
 
-    if (w->getWidgetType() == WidgetType::Button) {
-        Button* btn = static_cast<Button*>(w);
-        btn->toggle();
-        commitActiveEditValue();
-        refresh = Rect2(0, 0, 158, 64);
-    }
-
-    if (w->getWidgetType() == WidgetType::Edit) {
-        Edit* edit = static_cast<Edit*>(w);
-
-        if (edit->isActive()) {
-            // Commit value to descriptor
-            commitActiveEditValue(); 
-        } else {
-            // Activate it for editing
-            edit->setActive(true);
+        if (w->getWidgetType() == WidgetType::Button) {
+            Button* btn = static_cast<Button*>(w);
+            btn->toggle();
+            commitActiveEditValue();
+            refresh = Rect2(0, 0, 158, 64);
         }
 
-        refresh = Rect2(0, 0, 158, 64);  // mark for redraw
+        if (w->getWidgetType() == WidgetType::Edit) {
+
+            Edit* edit = static_cast<Edit*>(w);
+
+            if (edit->isActive()) {
+                // Commit value to descriptor
+                commitActiveEditValue(); 
+            } else {
+                // Activate it for editing
+                edit->setActive(true);
+            }
+
+            refresh = Rect2(0, 0, 158, 64);  // mark for redraw
+        }
     }
-}
   
-    
+  
     else if(key == KEY_BACK){
         return encodeKeyReturn(KeyReturn::SCRSELECT, ScreenEnum::MENUSCREEN);
     }

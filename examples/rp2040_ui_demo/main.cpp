@@ -5,6 +5,7 @@
 #include <aboutscreen.h>
 #include <settingsscreen.h>
 #include <basicscreen.h>
+#include <splashscreen.h>
 #include <ctime>
 #include <time.h>
 #include "keyboard.h"
@@ -39,8 +40,6 @@ volatile int recv_index = 0;
 
 ScreenManager screenMgr;
 Debug debug;
-uint32_t myCounter = 123;
-uint8_t statusFlag = 1;
 
 void setup_master(){
     gpio_init(I2C_MASTER_SDA_PIN);
@@ -174,54 +173,12 @@ void core1_entry() {
 
 void registerAllScreens(ScreenManager& mgr) {
     // Build a non-static array so lambdas can capture mgr
-    ScreenFactoryFunc screenObjects[SCREEN_COUNT] = {
-        [&mgr]() -> Screen* { return new MenuScreen(mgr); },
-        [&mgr]() -> Screen* { return new TestScreen(mgr); },
-        //[&mgr]() -> Screen* { return new SettingsScreen(mgr); },
-        //[&mgr]() -> Screen* { return new AboutScreen(mgr); },
-        //[&mgr]() -> Screen* { return new BasicScreen(mgr); },
-    };
-
-    for (int i = 0; i < SCREEN_COUNT; ++i) {
-        if (screenObjects[i]) {
-            auto id = static_cast<ScreenEnum>(i);
-            // register and immediately get back the descriptor
-            //auto& desc = mgr.registerScreen(id, screenObjects[i]);
-            mgr.registerScreen(id, screenObjects[i]);
-            auto& desc = mgr.getDescriptor(id);
-            // seed widgets only the first time
-            if (desc.widgets.empty() && id == ScreenEnum::TESTSCREEN) {
-
-                desc.widgets.push_back({
-                    WidgetType::Label,  // type
-                    1,                  // widgetId
-                    "First Label",      // initialText    
-                    0, 1, 100, 10,       // x, y, w, h
-                    0                   // selectable
-                });
-                desc.widgets.push_back({
-                    WidgetType::Button,
-                    1,
-                    "WiFi",      // label
-                    10, 20, 80, 12,
-                    true,        // selectable
-                    0, 0, 0,     // irrelevant Edit fields
-                    true,        // toggleState
-                    "ON", "OFF"
-                });
-                desc.widgets.push_back({
-                    WidgetType::Edit,
-                    2,
-                    "Volume",
-                    10, 35, 80, 12,
-                    true,
-                    50, 0, 100,  // initialValue, minValue, maxValue
-                    false, "", "" // irrelevant Button fields
-                });
-                printf("widgets size:%zu\n", desc.widgets.size());
-            }
-        }
-    }
+    mgr.registerScreen(ScreenEnum::MENUSCREEN, [&mgr](){ return new MenuScreen(mgr); });
+    mgr.registerScreen(ScreenEnum::TESTSCREEN, [&mgr](){ return new TestScreen(mgr); });
+    mgr.registerScreen(ScreenEnum::SETTINGSSCREEN, [&mgr](){ return new SettingsScreen(mgr); });
+    mgr.registerScreen(ScreenEnum::ABOUTSCREEN, [&mgr](){ return new AboutScreen(mgr); });
+    mgr.registerScreen(ScreenEnum::BASICSCREEN, [&mgr](){ return new BasicScreen(mgr); });
+    mgr.registerScreen(ScreenEnum::SPLASHSCREEN, [&mgr](){ return new SplashScreen(mgr); });
 }
 
 int main()
@@ -230,22 +187,19 @@ int main()
     stdio_init_all();
     srand((unsigned int)time(0));
 	uint32_t msSinceBoot=to_ms_since_boot(get_absolute_time());
-    debug.registerVar("counter", &myCounter, sizeof(myCounter));
-    debug.registerVar("status", &statusFlag, sizeof(statusFlag));
 
     Display *display=new Display();
     debug.setDisplay(display);
     debug.registerVar("fb", display->getFrameBufferPtr(), DISPLAY_WIDTH*DISPLAY_HEIGHT);    
-	//sleep_ms(5000);
+
     printf("Starting\n");
     debug.printHelp();
     KeyBoard *keyboard = new KeyBoard();
-    //debug.init();
+
     while (!stdio_usb_connected()) {
         sleep_ms(10);  // Wait for USB host to open the port
     }
     printf("Debug console ready.\n");
-    printf("addr :%x\n",&myCounter);
     timetype lastUpdate = getTime();
     //display->clearBg();
     display->clear(0);
@@ -275,7 +229,7 @@ int main()
         keyboard->checkKeyState(&screenMgr);
         screenMgr.update(deltaTimeMS);
         if(screenMgr.needRefresh()){
-            printf("redraw!\n");
+            //printf("redraw!\n");
             //display->drawBitmapRow(Vec2(0,0), DISPBUFSIZE, bg01);  
             display->clear(0);
             screenMgr.draw(display);

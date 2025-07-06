@@ -12,6 +12,7 @@ add_library(i2c_ui_lib
   src/sprite.cpp
   src/widget.cpp
   src/debug.cpp
+  src/screen.cpp
 )
 
 target_include_directories(i2c_ui_lib

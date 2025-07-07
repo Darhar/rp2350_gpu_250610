@@ -12,7 +12,6 @@ Edit::Edit(const std::string& text, int x, int y, int width, int height, int val
     active     = false; 
 }
 
-
 void Edit::draw(Display *disp) const {
     //printf("draw Edit\n");
 

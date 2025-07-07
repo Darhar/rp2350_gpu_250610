@@ -1,8 +1,25 @@
+#pragma once
+/*
 #include "common.h"
 #include "screen.h"
 #include "keyboard.h"
 #include <vector>
 
+*/
+
+#include <string>
+#include "widget.h"
+#include "display.h"
+
+class Menu : public Widget {
+public:
+
+    Menu(const std::string& text, int x, int y, int width, int height);
+    void draw(Display *display) const override;
+
+};
+
+/*
 class Menu
 {
     private:
@@ -28,3 +45,5 @@ class Menu
         void showMenu(bool sm);
         uint8_t getSelection();
 };
+
+*/

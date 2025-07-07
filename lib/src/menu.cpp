@@ -1,5 +1,24 @@
 #include "menu.h"
 
+Menu::Menu(const std::string& text, int x, int y, int width, int height)
+    : Widget(text, x, y, width, height) {
+    printf("[menu] const start\n");
+    widgetType = WidgetType::Menu;
+    selectable = false;    // explicit but optional
+    printf("[menu] constr fin\n");
+}
+
+void Menu::draw(Display *disp) const {
+    printf("[menu] draw\n");
+    if (selected) {
+        disp->setInverted(true);
+    } else {
+        disp->setInverted(false);
+    }
+    term6x9->drawText(disp, label, Vec2(boundingBox.x, boundingBox.y), 255, 1);        
+}
+
+/*
 Menu::Menu(std::vector<std::string> menuDat,uint8_t wid){
     data=menuDat;
     width=wid;
@@ -72,3 +91,5 @@ void Menu::changeSelection(uint8_t dirctn){
     printf("\nFIN firstItemPos:%d,selection:%d,lastIndex:%d\n",firstItemPos,selection,lastIndex);
 
 }
+
+*/

@@ -28,6 +28,5 @@ class TestScreen : public Screen
 		ScreenManager& mgr;
 		ScreenEnum     scrEnum;
 		void rebuildFromDescriptor();
-		//void buildFromDescriptor();
 		void seedDescriptor(ScreenManager& mgr);
 };

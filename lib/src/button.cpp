@@ -1,16 +1,6 @@
 #include "button.h"
 #include <iostream>
 
-/*Button::Button(const std::string& text, int x, int y, int width, int height,const std::string& caption_)
-    : Widget(text,x, y, width, height), caption(caption_) {
-    //printf("Size of caption %s=%d\n",caption.c_str(),caption.size());
-    widgetType = WidgetType::Button;
-    buttSize=Size2(buttWidth,boundingBox.h);
-    buttonPos=Vec2(boundingBox.x+boundingBox.w-buttSize.w,boundingBox.y);
-    butRect=Rect2(buttonPos,buttSize);
-    selectable = true; 
-    active     = false; 
-}*/
 Button::Button(const std::string& label,
                const std::string& captionOn,
                const std::string& captionOff,
@@ -26,8 +16,7 @@ Button::Button(const std::string& label,
     widgetType = WidgetType::Button;
     buttSize=Size2(buttWidth,boundingBox.h);
     buttonPos=Vec2(boundingBox.x+boundingBox.w-buttSize.w,boundingBox.y);
-    butRect=Rect2(buttonPos,buttSize); 
-    
+    butRect=Rect2(buttonPos,buttSize);   
 }
 
 void Button::toggle() {

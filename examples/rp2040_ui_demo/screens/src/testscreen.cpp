@@ -1,23 +1,19 @@
 #include "testscreen.h"
 
-TestScreen::TestScreen(ScreenManager& mgr)
-  : mgr(mgr), scrEnum(ScreenEnum::TESTSCREEN){
+TestScreen::TestScreen(ScreenManager& mgr) : mgr(mgr), scrEnum(ScreenEnum::TESTSCREEN){
 
     printf("[Test] constructor\n");
-    // 1) Let TestScreen seed its own descriptor
     seedDescriptor(mgr);
     screenId = scrEnum;
-    // build widgets once from the descriptor
     rebuildFromDescriptor();
     title =  "Test Screen";
     duration=0; 
     funkyV16->setClearSpace(true);
     refresh=Rect2(0,0,158,64);
-    //printf("[test] Started\n");
+
 }
 
 TestScreen::~TestScreen() {
-    //printf("deleting widgets\n");
     for (Widget* widget : widgets) {
         delete widget;
     }

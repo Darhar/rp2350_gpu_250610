@@ -3,6 +3,7 @@
 #include <label.h>
 #include <button.h>
 #include <edit.h>
+#include <menu.h>
 
 ScreenManager::~ScreenManager() {
     delete activeScreen;
@@ -42,6 +43,10 @@ Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
                 wd.initialValue,
                 wd.minValue, wd.maxValue);
 
+        case WidgetType::Menu:
+            return new Menu(
+                wd.label,
+                wd.x, wd.y,wd.width, wd.height);
         // … handle other widget types …
 
         default:
@@ -74,7 +79,6 @@ void ScreenManager::setActiveScreen(ScreenEnum id) {
     printf("Setting Active screen %d\n",id);
     delete activeScreen;
     activeScreen = buildScreenFromDescriptor(id);
-
 }
 
 ScreenDescriptor& ScreenManager::getDescriptor(ScreenEnum id){
@@ -114,6 +118,7 @@ void ScreenManager::keyDown(uint8_t key){
         keyReturn=activeScreen->keyDown(key);
     }    
 }
+
 void ScreenManager::keyReleased(uint8_t key){
     if (activeScreen) {
         keyReturn=activeScreen->keyReleased(key);

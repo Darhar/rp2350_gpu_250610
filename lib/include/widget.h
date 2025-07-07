@@ -5,7 +5,8 @@
 enum class WidgetType {
     Label,
     Button,
-    Edit
+    Edit,
+    Menu
 };
 
 class Widget {

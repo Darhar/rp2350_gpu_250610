@@ -18,7 +18,7 @@ ScreenDescriptor& ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc
 }
 
 Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
-    printf("createWidgetFromDescriptor\n");
+    printf("[SM] createWidgetFromDescriptor\n");
     switch (wd.type) {
         case WidgetType::Label:
             // new Label(text, x, y, width, height)
@@ -46,7 +46,11 @@ Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
         case WidgetType::Menu:
             return new Menu(
                 wd.label,
+                wd.menuItems,
+                wd.initialSelection,
                 wd.x, wd.y,wd.width, wd.height);
+
+
         // … handle other widget types …
 
         default:
@@ -56,7 +60,7 @@ Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
 }
 
 Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
-    printf("buildScreenFromDescriptor screen:%d\n",id);
+    printf("[sm] buildScreenFromDescriptor screen:%d\n",id);
     auto curFactory = screenObjects.find(id);
 
     if (curFactory == screenObjects.end()) {
@@ -67,7 +71,7 @@ Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
 
     // 4) (Optionally) restore any screen-level state:
     //    e.g. screen->setSelected(desc.selectedIndex);
-
+    printf("sManager] returning screen\n");
     return screen;
 }
 
@@ -100,7 +104,7 @@ void ScreenManager::draw(Display* display) {
 void ScreenManager::keyPressed(uint8_t key) {
     if (activeScreen) {
         keyReturn=activeScreen->keyPressed(key);
-
+        printf("[SM] active Screen keypressed - returned\n");
         KeyReturn cmd=decodeKeyCommand((KeyReturn)keyReturn);
         int retID=decodeKeyID(keyReturn);
 
@@ -109,7 +113,7 @@ void ScreenManager::keyPressed(uint8_t key) {
         }else if(cmd==KeyReturn::SCRBACK){
             setActiveScreen(MENUSCREEN);
         }
-        //printf("Key return:%d\n",keyReturn);
+        printf("[SM] Keypressed return:%d\n",keyReturn);
     }
 }
 

@@ -12,6 +12,7 @@ void Screen::addWidget(Widget* w, uint32_t id) {
 }
 
 void Screen::buildFromDescriptor(ScreenManager& mgr) {
+  printf("[Screen] buildScreenFromDescriptor\n");
   widgets.clear();
   selectedIndex = -1;
   auto& desc = mgr.getDescriptor(scrEnum);

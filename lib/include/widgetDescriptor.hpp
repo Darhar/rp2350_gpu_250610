@@ -14,12 +14,16 @@ struct WidgetDescriptor {
     // === Widget-specific ===
     // For Edit
     int initialValue = 0;
-    int minValue = 0;
-    int maxValue = 100;
+    int minValue;
+    int maxValue;
 
     // For Button (ToggleButton)
     bool toggleState = false;
     std::string captionOn;
     std::string captionOff;
-
+    // for Menu
+    std::vector<std::string> menuItems;      // for MENU
+    int  initialSelection;
 };
+
+

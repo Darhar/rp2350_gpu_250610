@@ -30,12 +30,7 @@ const std::string& Button::getCaption() const {
 
 void Button::draw(Display *disp) const {
     //printf("draw Button\n");
-    buttonGraphic(disp);
-}
-
-void Button::buttonGraphic(Display *disp) const{
-    if(selected) printf("but selected\n");
-
+    disp->setInverted(false);  
     ariel5x8->drawText(disp, label, Vec2(boundingBox.x, boundingBox.y), 255, 1);
     disp->setInverted(selected);
     disp->fillRect(butRect,  0, 255);
@@ -43,7 +38,7 @@ void Button::buttonGraphic(Display *disp) const{
     //text    
     ariel5x8->drawText(disp, caption, Vec2(buttonPos.x+(buttWidth-(caption.size()*5))/2, buttonPos.y+2), 255, 1);
     disp->setInverted(false);
-
+    
 
 }
 

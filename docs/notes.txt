@@ -947,4 +947,25 @@ Option 3: Move the definition inside the constructor (if not reused elsewhere)
     }
 This avoids the global altogether. Only do this if menuB is only used inside SettingsScreen
 
-----------------------
+------ screen creation sequence ------
+[SM]        Keypressed
+[SM]        activeScreen->Keypressed
+[screen]    return encodeKeyReturn
+[SM]        setActiveScreen
+                buildScreenFromDescriptor
+                    auto curFactory = screenObjects.find(id);
+                    Screen* screen = curFactory->second();                
+[screen]                constructor
+[screen]                seedDescriptor
+[screen]                rebuild
+[SM]                        createWidgetFromDescriptor
+                                case: widgetType
+                                    new widget object
+[widget]                                constructor
+[screen]                constructor done
+[SM]        return screen    
+
+------250713--------
+menu widget working
+should look in to all widget having a value field
+menu widget could use it for initalselectedMenuItem

@@ -1,95 +1,65 @@
 #include "menu.h"
+#include <algorithm>   // for std::max_element
 
-Menu::Menu(const std::string& text, int x, int y, int width, int height)
-    : Widget(text, x, y, width, height) {
-    printf("[menu] const start\n");
+Menu::Menu(const std::string& text, const std::vector<std::string> _its,int _selId, int _x, int _y, int _w, int _h)
+        : Widget(text, _x,_y,_w,_h), items(std::move(_its)) ,selectedMenuItem(_selId)
+ {
+    printf("[menu] constr start\n");
     widgetType = WidgetType::Menu;
-    selectable = false;    // explicit but optional
+    selectable = true;    // explicit but optional
+    itemCount=(int)items.size();
+
+    auto it = std::max_element(
+        items.begin(), items.end(),
+        [](auto const& a, auto const& b) {
+            return a.size() < b.size();
+        }
+    );
+    boundingBox.w = 5*static_cast<int>( it->size() );
+
     printf("[menu] constr fin\n");
 }
 
 void Menu::draw(Display *disp) const {
     printf("[menu] draw\n");
+    int noofItems=(int)items.size();
+    disp->setInverted(false);
+
+    term6x9->drawText(disp, label, Vec2(boundingBox.x, boundingBox.y), 255, 1);    
     if (selected) {
         disp->setInverted(true);
-    } else {
-        disp->setInverted(false);
-    }
-    term6x9->drawText(disp, label, Vec2(boundingBox.x, boundingBox.y), 255, 1);        
-}
-
-/*
-Menu::Menu(std::vector<std::string> menuDat,uint8_t wid){
-    data=menuDat;
-    width=wid;
-    length=50;
-    itemStartIndx=0;
-    selection=0;
-    lastIndex=menuDat.size(); 
-    fontHeight=10;
-    displayItems=5;
-    show=true;
-}
-
-Menu::~Menu(){}
-
-void Menu::update(uint16_t deltaTimeMS){}
-
-void Menu::showMenu(bool sm){
-    show=sm;
-}
-
-uint8_t Menu::getSelection(){
-    return selection;
-}
-
-void Menu::draw(Display *display){
-    int positionIndx=0;
-    char buff[30];
-
-    uint8_t menuheight=displayItems*fontHeight;
-    if(show){
-        display->fillRect(Rect2(3,3,width,menuheight),  0, 255);
-        display->rect(Rect2(3,3,width,menuheight),1);
-        for(std::vector<std::string>::size_type itemINdx = itemStartIndx; positionIndx != 5; itemINdx++) {
-            if(itemINdx==selection){
-                display->setInverted(true);
-            }
-            ariel5x8->drawText(display, data[itemINdx].c_str(), Vec2(6, positionIndx*fontHeight+5), 255, 1);
-            display->setInverted(false);
-            positionIndx++;
-        }        
     }
 
-
-    sprintf (buff, " %d:%d ", selection,itemStartIndx);
-    ariel5x8->drawText(display, buff, Vec2(90, 10), 255, 1);
-}
-
-void Menu::changeSelection(uint8_t dirctn){
-    int firstItemPos=selection-itemStartIndx;
-    printf("STA firstItemPos:%d,selection:%d,lastIndex:%d\n",firstItemPos,selection,lastIndex);
-    if(dirctn==0){ //back
-        if(selection>0){
-            printf("A");
-            if(firstItemPos<=0){
-                printf("00");
-                itemStartIndx--;
-            }            
-           selection--; 
+    if(active){
+        disp->fillRect(Rect2(boundingBox.x+menuOffs, boundingBox.y, boundingBox.w+4, noofItems*fontHeight),1,255);
+        disp->rect(Rect2(boundingBox.x+menuOffs-1, boundingBox.y, boundingBox.w+5, noofItems*fontHeight),0,255);
+        for (int i = 0; i < noofItems; ++i) {
+            bool isSel = (i == selectedMenuItem);
+            // draw highlight if selected
+            if (isSel) disp->fillRect(Rect2(boundingBox.x+menuOffs-1, boundingBox.y + i*fontHeight, boundingBox.w+4, fontHeight), 0,255);
+            // draw the text
+            disp->setInverted(isSel);
+            ariel5x8->drawText(disp, items[i], Vec2(boundingBox.x+2+menuOffs, boundingBox.y + i*fontHeight +2),255,1);
+            //disp->setInverted(false);
         }  
-    }else{//forward
-        if(selection<lastIndex-1){
-            printf("B");
-            if(firstItemPos>=(displayItems-1)){
-                printf("11");
-                itemStartIndx++;
-            }
-            selection++;    
-        } 
+    }else{
+        disp->fillRect(Rect2(boundingBox.x+menuOffs, boundingBox.y, boundingBox.w, fontHeight), 0,255);
+        term6x9->drawText(disp, "test", Vec2(boundingBox.x+2+menuOffs, boundingBox.y), 255, 1);    
     }
-    printf("\nFIN firstItemPos:%d,selection:%d,lastIndex:%d\n",firstItemPos,selection,lastIndex);
+}
+//should really used a "value" field in the widget class and initialvalue descriptor field instead of selectedMenuitem
+void Menu::changeMenuSelection(int dirctn){
+    printf("[Menu] changeMenuSelection:%d\n",dirctn);
+
+    if(dirctn==1){ //forward
+        if(selectedMenuItem<(itemCount-1)){
+            selectedMenuItem++;
+        }
+    }else{//back
+        if(selectedMenuItem>0){
+            selectedMenuItem--;
+        }            
+    }
 
 }
 
-*/

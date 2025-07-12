@@ -23,7 +23,7 @@ public:
 
 
 private:
-    void buttonGraphic(Display *disp) const;
+    //void buttonGraphic(Display *disp) const;
     Size2 buttSize;
     Vec2 buttonPos;
     Rect2 butRect;

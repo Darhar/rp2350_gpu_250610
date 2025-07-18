@@ -10,7 +10,7 @@ void Screen::addWidget(Widget* w, uint32_t id) {
   }
   refresh = Rect2(0,0,158,64);
 }
-
+/*
 void Screen::buildFromDescriptor(ScreenManager& mgr) {
   printf("[Screen] buildScreenFromDescriptor\n");
   widgets.clear();
@@ -22,3 +22,5 @@ void Screen::buildFromDescriptor(ScreenManager& mgr) {
     addWidget(w, wd.widgetId);
   }
 }
+*/
+

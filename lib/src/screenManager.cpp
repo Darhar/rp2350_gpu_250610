@@ -66,12 +66,7 @@ Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
     if (curFactory == screenObjects.end()) {
         return nullptr;    // or throw, or fallback
     }
-
     Screen* screen = curFactory->second();  
-
-    // 4) (Optionally) restore any screen-level state:
-    //    e.g. screen->setSelected(desc.selectedIndex);
-    printf("sManager] returning screen\n");
     return screen;
 }
 

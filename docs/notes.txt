@@ -969,3 +969,16 @@ This avoids the global altogether. Only do this if menuB is only used inside Set
 menu widget working
 should look in to all widget having a value field
 menu widget could use it for initalselectedMenuItem
+
+the fields used in the descriptor are just for parameters 
+which will change and need to be stored between screen changes
+So reallty its just the value of the widget
+
+------ genericerise the widgets   ---------------
+I want all the widgets to use the same amount of space to store persistant data
+
+so all widgets will have 32 bits for a value and flags
+and a text buffer
+A console widget will have a buffer of a definesd size
+There will be a specific edit widget to handle fractions
+Text input needs a special widget, on screen there is room for 5 rows and 22 clumns of letters in boxes

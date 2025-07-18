@@ -24,7 +24,6 @@
         std::vector<Widget*> widgets;
         int selectedIndex;
         void addWidget(Widget* w, uint32_t id);
-        void buildFromDescriptor(ScreenManager& mgr);        
     };
 
 #endif

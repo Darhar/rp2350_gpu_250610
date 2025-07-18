@@ -14,6 +14,7 @@ protected:
     Rect2 boundingBox;
     uint32_t id;
     WidgetType widgetType;
+    //int value;
     bool selectable = false;   // default: non-selectable
     bool selected   = false;   // is this currently focused?
     bool active     = false;   // only meaningful if selectable==true   
@@ -28,14 +29,12 @@ public:
     virtual void draw(Display *display) const = 0; // Pure virtual function
     virtual ~Widget();
     const std::string& getLabel() const { return label; }
-
-    virtual void setSelected(bool s)  { if (selectable) selected = s; }
+    //virtual int getValue() const {return value;}
+    //virtual void setValue(int val){ if (selectable) value = val; }
     virtual bool isSelected()  const { if (selectable) return selected; return false;}
-    virtual void setActive(bool a)    { if (selectable) active = a; }
     virtual bool isActive()   const  { if (selectable) return active; return false;}   
+    virtual void setSelected(bool s)  { if (selectable) selected = s; }
+    virtual void setActive(bool a)    { if (selectable) active = a; }
     virtual bool isSelectable() const { return selectable; }
-
-
-
 };
 

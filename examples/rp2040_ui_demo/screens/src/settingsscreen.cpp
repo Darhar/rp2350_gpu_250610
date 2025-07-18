@@ -32,6 +32,7 @@ SettingsScreen::~SettingsScreen() {
 void SettingsScreen::update(uint16_t deltaTimeMS) {}
 
 void SettingsScreen::draw(Display *disp) {
+    disp->setInverted(false);
     printf("[settings] draw\n");
     for (auto* w : widgets){
         w->draw(disp);  
@@ -45,7 +46,7 @@ void SettingsScreen::seedDescriptor(ScreenManager& mgr) {
             WidgetType::Button,
             0,
             "WiFi",      // label
-            10, 20, 80, 12,
+            2, 10, 80, 12,
             true,        // selectable
             0, 0, 0,     // irrelevant Edit fields
             true,        // toggleState
@@ -55,7 +56,7 @@ void SettingsScreen::seedDescriptor(ScreenManager& mgr) {
             WidgetType::Menu,        // new MENU type
             /*widgetId=*/ 1,
             /*label=*/"Choice",
-            0, 0, 100, 12,           // one row of 12px height
+            2, 0, 100, 12,           // one row of 12px height
             /*selectable =*/ true,
             /*initialValue =*/ 0,
             /*minValue=*/ 0,
@@ -153,7 +154,7 @@ int SettingsScreen::keyPressed(uint8_t key) {
                 // Commit value to descriptor
                 commitActiveMenuValue(); //will set menu inactive
             } else {
-                // Activate it for editing
+                // Activate it for selecting
                 menu->setActive(true);
             }
             //menu->toggleMenu();

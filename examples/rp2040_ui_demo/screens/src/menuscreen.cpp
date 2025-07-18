@@ -7,7 +7,6 @@ MenuScreen::MenuScreen(ScreenManager& mgr)
 {
     printf("[MenuScreen] loading...\n");
     screenId = ScreenEnum::MENUSCREEN;
-    //returnCallBack = rcb;
     currentMenuItem = 0;
     selectedMenuItem = 0;
     isAnimating = false;
@@ -42,6 +41,7 @@ void MenuScreen::update(uint16_t deltaTimeMS) {
 }
 
 void MenuScreen::draw(Display *display) {
+    display->setInverted(false);
     funkyV16->drawText(display, menuItemNames[currentMenuItem][0],Vec2( animationCounter+10, 10), 255, 1);
 }
 

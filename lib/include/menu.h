@@ -24,6 +24,7 @@ class Menu : public Widget {
         int itemCount;
         int selectedMenuItem;
         int  fontHeight=10;
+        int  fontWidth=5;
         bool show=false;
         int menuOffs=50;
         //int                      itemHeight;

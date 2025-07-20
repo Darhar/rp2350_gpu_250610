@@ -43,16 +43,6 @@ void SettingsScreen::seedDescriptor(ScreenManager& mgr) {
     auto& desc = mgr.getDescriptor(ScreenEnum::SETTINGSSCREEN);
     if (desc.widgets.empty()) {
         desc.widgets.push_back({
-            WidgetType::Button,
-            0,
-            "WiFi",      // label
-            2, 10, 80, 12,
-            true,        // selectable
-            0, 0, 0,     // irrelevant Edit fields
-            true,        // toggleState
-            "ON", "OFF"
-        });        
-        desc.widgets.push_back({
             WidgetType::Menu,        // new MENU type
             /*widgetId=*/ 1,
             /*label=*/"Choice",
@@ -66,7 +56,18 @@ void SettingsScreen::seedDescriptor(ScreenManager& mgr) {
             /*captionOff=*/ "",
             /*menuItems=*/ menuA, 
             /*initialSelection=*/ 0
-        });
+        });        
+        desc.widgets.push_back({
+            WidgetType::Button,
+            0,
+            "WiFi",      // label
+            2, 12, 100, 12,
+            true,        // selectable
+            0, 0, 0,     // irrelevant Edit fields
+            true,        // toggleState
+            "ON", "OFF"
+        });        
+
     }
     printf("widgets : %d \n",desc.widgets.size());
 }
@@ -153,8 +154,11 @@ int SettingsScreen::keyPressed(uint8_t key) {
             if (menu->isActive()) {
                 // Commit value to descriptor
                 commitActiveMenuValue(); //will set menu inactive
+                //moveToBottom(selectedIndex);
+                
             } else {
                 // Activate it for selecting
+                widgetToTop(selectedIndex);
                 menu->setActive(true);
             }
             //menu->toggleMenu();

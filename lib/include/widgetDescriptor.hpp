@@ -1,7 +1,7 @@
 #include "common.h"
 #include "widget.h"
 
-struct WidgetDescriptor {
+struct  WidgetDescriptor {
     // === Common to all widgets ===
     WidgetType type;
     uint32_t widgetId;

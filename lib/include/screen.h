@@ -2,6 +2,7 @@
 #include "display.h"
 #include "widget.h"
 #include <vector>
+#include <algorithm>
 #include "screenManager.hpp"
 
 #ifndef SCREEN_H
@@ -24,6 +25,8 @@
         std::vector<Widget*> widgets;
         int selectedIndex;
         void addWidget(Widget* w, uint32_t id);
+        void widgetToBottom(uint32_t widgetId);
+        void widgetToTop(uint32_t widgetId);        
     };
 
 #endif

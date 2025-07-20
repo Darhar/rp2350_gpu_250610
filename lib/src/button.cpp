@@ -17,6 +17,8 @@ Button::Button(const std::string& label,
     buttSize=Size2(buttWidth,boundingBox.h);
     buttonPos=Vec2(boundingBox.x+boundingBox.w-buttSize.w,boundingBox.y);
     butRect=Rect2(buttonPos,buttSize);   
+    printf("[Button] constr fin\n");
+
 }
 
 void Button::toggle() {

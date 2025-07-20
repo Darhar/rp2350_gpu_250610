@@ -23,7 +23,7 @@
         ScreenEnum scrEnum;
         Rect2 refresh;
         std::vector<Widget*> widgets;
-        int selectedIndex;
+        int selectedIndex=-1;
         void addWidget(Widget* w, uint32_t id);
         void widgetToBottom(uint32_t widgetId);
         void widgetToTop(uint32_t widgetId);        

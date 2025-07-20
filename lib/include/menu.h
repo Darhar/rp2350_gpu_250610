@@ -12,7 +12,8 @@ class Menu : public Widget {
             const std::string& text,
             const std::vector<std::string> items,
             int selectedMenuItem,
-            int x, int y, int width, int height);
+            int x, int y, int width, int height
+        );
 
         void draw(Display *display) const override;
         void changeMenuSelection(int dirctn);

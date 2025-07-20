@@ -9,8 +9,6 @@ std::vector<std::string> menuA
 }; 
 
 SettingsScreen::SettingsScreen(ScreenManager& mgr) : mgr(mgr), scrEnum(ScreenEnum::SETTINGSSCREEN){
-    printf("[SettingsScreen] loading...\n");
-
     seedDescriptor(mgr);
     screenId = scrEnum;
     rebuildFromDescriptor();
@@ -33,7 +31,7 @@ void SettingsScreen::update(uint16_t deltaTimeMS) {}
 
 void SettingsScreen::draw(Display *disp) {
     disp->setInverted(false);
-    printf("[settings] draw\n");
+    printf("[settings] draw, sel:%d\n",selectedIndex);
     for (auto* w : widgets){
         w->draw(disp);  
     }    
@@ -69,7 +67,7 @@ void SettingsScreen::seedDescriptor(ScreenManager& mgr) {
         });        
 
     }
-    printf("widgets : %d \n",desc.widgets.size());
+    //printf("widgets : %d \n",desc.widgets.size());
 }
 void SettingsScreen::commitActiveMenuValue() {
     auto* w = widgets[selectedIndex];
@@ -130,15 +128,18 @@ int SettingsScreen::keyPressed(uint8_t key) {
             }
         }            
         if(normNavig){
+            printf("sel Indx:%d\n",selectedIndex);
             int original = selectedIndex;
             do {
                 selectedIndex = (selectedIndex + dir + widgets.size()) % widgets.size();
             } while (!widgets[selectedIndex]->isSelectable() && selectedIndex != original);
 
-            for (size_t i = 0; i < widgets.size(); ++i) {
+            for (size_t i = 0; i < widgets.size(); ++i) {//need to change widget selected field
                 widgets[i]->setSelected(i == selectedIndex);
                 printf("widget %d is a %d",i, widgets[i]->getWidgetType());
-                if(i == selectedIndex){printf(" and selected\n");}else{printf("\n");}
+                if(i == selectedIndex){
+                    printf(" and selected\n");}else{printf("\n");
+                }
             }
         }
         refresh=Rect2(0,0,158,64);

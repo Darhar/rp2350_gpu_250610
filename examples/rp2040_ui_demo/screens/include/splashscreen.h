@@ -16,7 +16,7 @@ private:
     std::string title1;
     std::string title2;
     Sprite *ball00;
-    int selectedIndex = -1;
+    int selectedIndex = 0;
     ScreenManager& mgr;
 
 public:

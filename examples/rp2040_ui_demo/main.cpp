@@ -225,7 +225,7 @@ int main()
         
         uint16_t deltaTimeMS = getTimeDiffMS(lastUpdate);
         lastUpdate = getTime();
-         debug.poll();
+        debug.poll();
         keyboard->checkKeyState(&screenMgr);
         screenMgr.update(deltaTimeMS);
         if(screenMgr.needRefresh()){

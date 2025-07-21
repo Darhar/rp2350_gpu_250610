@@ -9,12 +9,10 @@ ScreenManager::~ScreenManager() {
     delete activeScreen;
 }
 
-ScreenDescriptor& ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
+void ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
     screenObjects[id] = std::move(factory);
-    auto& desc = screenData[id];
-    desc.id    = id;
-    screenCount++;
-    return desc;
+    //screenData[id].id = id;      
+    ++screenCount;
 }
 
 Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {

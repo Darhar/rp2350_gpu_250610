@@ -8,8 +8,8 @@
 using ScreenFactoryFunc = std::function<Screen*()>;
 
 struct ScreenDescriptor {
-    ScreenEnum id;
     std::vector<WidgetDescriptor> widgets;
+    //for future screen related persistant data
 };
 
 class ScreenManager {
@@ -24,7 +24,7 @@ class ScreenManager {
     public:
         ~ScreenManager();
 
-        ScreenDescriptor& registerScreen(ScreenEnum id, ScreenFactoryFunc factory);
+        void registerScreen(ScreenEnum id, ScreenFactoryFunc factory);
         void registerFactory(ScreenEnum id, ScreenFactoryFunc func);
         void setActiveScreen(ScreenEnum id);
         void update(uint16_t deltaTimeMS);

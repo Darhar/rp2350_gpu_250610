@@ -12,11 +12,28 @@
 // Uncomment to enable debug output
 #define ENABLE_SERIAL_DEBUG
 
+// ------------------------------------------------------------
+// Trace categories (compile-time control)
+// ------------------------------------------------------------
+#define ENABLE_GLOBAL_DEBUG 0   // DEBUG_PRINT/DEBUG_PRINTLN used in non class functions
+#define TRACE_GENERAL  0     // General debug
+#define TRACE_UI       0   // UI-related traces
+#define TRACE_INPUT    0   // keyboard/input traces
+#define TRACE_VARS     0   // menu-related traces
+#define TRACE_DISPLAY  0   // display update traces
+#define TRACE_KEY   1   //for key related messages
 #ifdef ENABLE_SERIAL_DEBUG
 
     // --- BASIC DEBUG MACROS ---
-    #define DEBUG_PRINT(...)     std::printf(__VA_ARGS__)
-    #define DEBUG_PRINTLN(...)   do { std::printf("%s: ", __func__); std::printf(__VA_ARGS__); std::printf("\n"); } while(0)
+    #define DEBUG_PRINT(...) \
+        do { if (ENABLE_GLOBAL_DEBUG) std::printf(__VA_ARGS__); } while(0)
+
+    #define DEBUG_PRINTLN(...) \
+        do { if (ENABLE_GLOBAL_DEBUG) { \
+            std::printf("%s: ", __func__); \
+            std::printf(__VA_ARGS__); \
+            std::printf("\n"); \
+        } } while(0)
 
     // --- CLASS TRACE SUPPORT ---
     #include <string_view>
@@ -46,14 +63,18 @@
 
     // TRACE macro for class methods: [ClassName] function: message
     #define TRACE(fmt, ...) \
-        std::printf("[%.*s] %s: " fmt "\n", (int)CLASS_NAME().size(), CLASS_NAME().data(), __func__, ##__VA_ARGS__)
+        do { if (TRACE_GENERAL) std::printf("[%.*s] %s: " fmt "\n", (int)CLASS_NAME().size(), CLASS_NAME().data(), __func__, ##__VA_ARGS__); } while(0)
+
+    // Category-based TRACE macro (compile-time controlled)
+    #define TRACE_CAT(cat, fmt, ...) \
+        do { if (cat) std::printf("[%.*s] %s: " fmt "\n", (int)CLASS_NAME().size(), CLASS_NAME().data(), __func__, ##__VA_ARGS__); } while(0)
 
 #else
     #define DEBUG_PRINT(...)     ((void)0)
     #define DEBUG_PRINTLN(...)   ((void)0)
     #define TRACE(fmt, ...)      ((void)0)
+    #define TRACE_CAT(cat, fmt, ...) ((void)0)
     #define CLASS_NAME()         ("")
-
 #endif
 
 // -------------------------------------------------------------

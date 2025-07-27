@@ -7,12 +7,10 @@
 
 ScreenManager::~ScreenManager() {
     delete activeScreen;
-    TRACE("");
 }
 
 void ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
-    screenObjects[id] = std::move(factory);
-    //screenData[id].id = id;      
+    screenObjects[id] = std::move(factory);     
     ++screenCount;
 }
 
@@ -71,7 +69,9 @@ void ScreenManager::registerFactory(ScreenEnum id, ScreenFactoryFunc func) {
 }
 
 void ScreenManager::setActiveScreen(ScreenEnum id) {
-    TRACE("screen : %d",id);
+    //TRACE("screen : %d",id);
+    TRACE_CAT(TRACE_UI, "UI trace: widget active");
+
     delete activeScreen;
     activeScreen = buildScreenFromDescriptor(id);
 }
@@ -93,7 +93,7 @@ void ScreenManager::draw(Display* display) {
 }
 
 void ScreenManager::keyPressed(uint8_t key) {
-    TRACE("");
+    TRACE_CAT(TRACE_KEY,"");
     if (activeScreen) {
         keyReturn=activeScreen->keyPressed(key);
         KeyReturn cmd=decodeKeyCommand((KeyReturn)keyReturn);
@@ -104,7 +104,7 @@ void ScreenManager::keyPressed(uint8_t key) {
         }else if(cmd==KeyReturn::SCRBACK){
             setActiveScreen(MENUSCREEN);
         }
-        TRACE("return:%d",keyReturn);
+        TRACE_CAT(TRACE_KEY,"return:%d",keyReturn);
     }
 }
 

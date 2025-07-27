@@ -11,14 +11,13 @@ Button::Button(const std::string& label,
       captionOff(captionOff),
       state(initialState)
 {
+    TRACE("");
     caption = state ? captionOn : captionOff;
     selectable = true;
     widgetType = WidgetType::Button;
     buttSize=Size2(buttWidth,boundingBox.h);
     buttonPos=Vec2(boundingBox.x+boundingBox.w-buttSize.w,boundingBox.y);
     butRect=Rect2(buttonPos,buttSize);   
-    printf("[Button] constr fin\n");
-
 }
 
 void Button::toggle() {
@@ -31,8 +30,7 @@ const std::string& Button::getCaption() const {
 }
 
 void Button::draw(Display *disp) const {
-    //printf("draw Button\n");
-    disp->setInverted(false);  
+    TRACE("selected:%d",selected);
     ariel5x8->drawText(disp, label, Vec2(boundingBox.x, boundingBox.y), 255, 1);
     disp->setInverted(selected);
     disp->fillRect(butRect,  0, 255);
@@ -40,7 +38,5 @@ void Button::draw(Display *disp) const {
     //text    
     ariel5x8->drawText(disp, caption, Vec2(buttonPos.x+(buttWidth-(caption.size()*5))/2, buttonPos.y+2), 255, 1);
     disp->setInverted(false);
-    
-
 }
 

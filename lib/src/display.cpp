@@ -2,13 +2,13 @@
 #include <stdio.h>
 
 Display::Display() {
-    printf("[Display] driver loading...\n");
+    TRACE("driver loading...\n");
     setupIO();
 	sleep_ms(100);  
     frameBuffer = new FrameBuffer(DISPLAY_WIDTH, DISPLAY_HEIGHT);
     initHardware();
 	needRefresh=true;
-    printf("[Display] Done\n");
+
 }
 
 Display::~Display() {}
@@ -116,6 +116,7 @@ void Display::drawPixel(uint8_t x, uint8_t y, uint8_t colour)
 }
 
 void Display::update(void) {
+	TRACE("");
 	if(needRefresh){
         gpio_put(DIS_CS,0);  
 

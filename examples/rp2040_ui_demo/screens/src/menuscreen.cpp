@@ -5,7 +5,7 @@
 MenuScreen::MenuScreen(ScreenManager& mgr)
   : mgr(mgr)   // initializer list
 {
-    printf("[MenuScreen] loading...\n");
+    TRACE("");
     screenId = ScreenEnum::MENUSCREEN;
     currentMenuItem = 0;
     selectedMenuItem = 0;
@@ -15,12 +15,9 @@ MenuScreen::MenuScreen(ScreenManager& mgr)
     funkyV16->setClearSpace(true);
     option = option;
     refresh=Rect2(0,0,158,64);
-    printf("[MenuScreen] Done\n");
 }
 
-MenuScreen::~MenuScreen() {
-    printf("[MenuScreen] Destructing\n");
-}
+MenuScreen::~MenuScreen() {}
 
 void MenuScreen::update(uint16_t deltaTimeMS) {
     duration += deltaTimeMS;
@@ -41,17 +38,18 @@ void MenuScreen::update(uint16_t deltaTimeMS) {
 }
 
 void MenuScreen::draw(Display *display) {
+    TRACE("");
     display->setInverted(false);
     funkyV16->drawText(display, menuItemNames[currentMenuItem][0],Vec2( animationCounter+10, 10), 255, 1);
 }
 
 int MenuScreen::keyPressed(uint8_t key) {
-   
-    printf("MenuScreen keypressed\n");
+    TRACE("");
     if(isAnimating)
         return 0;
 
     if(key == KEY_UP) {
+        TRACE("key Up");
         if(selectedMenuItem < menuCount-1) {
             selectedMenuItem++;
             isAnimating = true;
@@ -59,6 +57,7 @@ int MenuScreen::keyPressed(uint8_t key) {
 
         }
     } else if (key == KEY_DOWN) {
+        TRACE("key Dwn");
         if(selectedMenuItem != 0) {
             selectedMenuItem--;
             isAnimating = true;
@@ -66,11 +65,11 @@ int MenuScreen::keyPressed(uint8_t key) {
 
         }
     } else if(key == KEY_OK) {
-        printf("selectionItem %d, \n",selectedMenuItem);
+        TRACE("key OK");
         refresh=Rect2(0,0,158,64);
         return encodeKeyReturn(KeyReturn::SCRSELECT, selectedMenuItem+1);
     }
-    printf("selectionItem %d, \n",selectedMenuItem);
+    TRACE("scr selectionItem %d",selectedMenuItem);
     return 0;
 }
 

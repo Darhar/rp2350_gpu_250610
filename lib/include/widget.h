@@ -31,16 +31,18 @@ public:
     const std::string& getLabel() const { return label; }
     //virtual int getValue() const {return value;}
     //virtual void setValue(int val){ if (selectable) value = val; }
-    virtual bool isSelected()  const { if (selectable) return selected; return false;}
-    virtual bool isActive()   const  { if (selectable) return active; return false;}   
+    virtual bool isSelected() const { if (selectable) return selected; return false;}
+    virtual bool isActive() const { if (selectable) return active; return false;}   
     virtual void setSelected(bool s)  { 
         if (selectable) {
             selected = s; 
-
         }
-        if(s) printf("[Widget] %d selected:\n",id); else printf("[Widget] %d not selected:\n",id);
+        if(s) TRACE("%d selected",id); else TRACE("%d not selected",id);
     }
-    virtual void setActive(bool a)    { if (selectable) active = a; }
+    virtual void setActive(bool a)    { 
+        if (selectable) active = a; 
+        if(a) TRACE("%d active",id); else TRACE("%d not active",id);
+    }
     virtual bool isSelectable() const { return selectable; }
 };
 

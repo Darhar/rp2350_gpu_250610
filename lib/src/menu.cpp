@@ -4,7 +4,7 @@
 Menu::Menu(const std::string& text, const std::vector<std::string> _its,int _selId, int _x, int _y, int _w, int _h)
         : Widget(text, _x,_y,_w,_h), items(std::move(_its)) ,selectedMenuItem(_selId)
  {
-    printf("[menu] constr start\n");
+    TRACE("");
     widgetType = WidgetType::Menu;
     selectable = true;    // explicit but optional
     itemCount=(int)items.size();
@@ -16,19 +16,14 @@ Menu::Menu(const std::string& text, const std::vector<std::string> _its,int _sel
         }
     );
     boundingBox.w = fontWidth*static_cast<int>( it->size() );
-    printf("[menu] constr fin\n");
 }
 
 void Menu::draw(Display *disp) const {
-    printf("[menu] draw\n");
+    TRACE("selected:%d, active:%d",selected,active);
+
     int noofItems=(int)items.size();
-    disp->setInverted(false);
-
-    term6x9->drawText(disp, label, Vec2(boundingBox.x, boundingBox.y), 255, 1);    
-    if (selected) {
-        disp->setInverted(true);
-    }
-
+    term6x9->drawText(disp, label, Vec2(boundingBox.x, boundingBox.y), 255, 1);     
+    disp->setInverted(selected);
     if(active){
         disp->fillRect(Rect2(boundingBox.x+menuOffs, boundingBox.y, boundingBox.w+4, noofItems*fontHeight),1,255);
         disp->rect(Rect2(boundingBox.x+menuOffs-1, boundingBox.y, boundingBox.w+5, noofItems*fontHeight),0,255);
@@ -45,11 +40,12 @@ void Menu::draw(Display *disp) const {
         disp->fillRect(Rect2(boundingBox.x+menuOffs, boundingBox.y, boundingBox.w, fontHeight), 0,255);
         term6x9->drawText(disp, items[selectedMenuItem], Vec2(boundingBox.x+2+menuOffs, boundingBox.y), 255, 1);    
     }
+    disp->setInverted(false);  
 }
 
 //should really used a "value" field in the widget class and initialvalue descriptor field instead of selectedMenuitem
 void Menu::changeMenuSelection(int dirctn){
-    printf("[Menu] changeMenuSelection:%d\n",dirctn);
+    TRACE("direction:%d",dirctn);
 
     if(dirctn==1){ //forward
         if(selectedMenuItem<(itemCount-1)){

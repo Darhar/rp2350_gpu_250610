@@ -24,6 +24,7 @@
 	#define DISPLAY_HEIGHT 64
 	#define DISPLAY_LINES (DISPLAY_HEIGHT/8)+1
 	#define DISPBUFSIZE 1412
+	#include "debug.h"
 
 	#include "intmath.h"
 	#include "logoSprite.h"          

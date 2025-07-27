@@ -7,6 +7,7 @@
 
 ScreenManager::~ScreenManager() {
     delete activeScreen;
+    TRACE("");
 }
 
 void ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
@@ -16,7 +17,7 @@ void ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
 }
 
 Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
-    printf("[SM] createWidgetFromDescriptor\n");
+    TRACE("");
     switch (wd.type) {
         case WidgetType::Label:
             // new Label(text, x, y, width, height)
@@ -47,10 +48,7 @@ Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
                 wd.menuItems,
                 wd.initialSelection,
                 wd.x, wd.y,wd.width, wd.height);
-
-
         // … handle other widget types …
-
         default:
             // Unknown widget type—return a nullptr or a placeholder
             return nullptr;
@@ -58,7 +56,7 @@ Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
 }
 
 Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
-    printf("[sm] buildScreenFromDescriptor screen:%d\n",id);
+    TRACE("screen:%d",id);
     auto curFactory = screenObjects.find(id);
 
     if (curFactory == screenObjects.end()) {
@@ -73,7 +71,7 @@ void ScreenManager::registerFactory(ScreenEnum id, ScreenFactoryFunc func) {
 }
 
 void ScreenManager::setActiveScreen(ScreenEnum id) {
-    printf("Setting Active screen %d\n",id);
+    TRACE("screen : %d",id);
     delete activeScreen;
     activeScreen = buildScreenFromDescriptor(id);
 }
@@ -95,9 +93,9 @@ void ScreenManager::draw(Display* display) {
 }
 
 void ScreenManager::keyPressed(uint8_t key) {
+    TRACE("");
     if (activeScreen) {
         keyReturn=activeScreen->keyPressed(key);
-        printf("[SM] active Screen keypressed - returned\n");
         KeyReturn cmd=decodeKeyCommand((KeyReturn)keyReturn);
         int retID=decodeKeyID(keyReturn);
 
@@ -106,7 +104,7 @@ void ScreenManager::keyPressed(uint8_t key) {
         }else if(cmd==KeyReturn::SCRBACK){
             setActiveScreen(MENUSCREEN);
         }
-        printf("[SM] Keypressed return:%d\n",keyReturn);
+        TRACE("return:%d",keyReturn);
     }
 }
 

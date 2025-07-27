@@ -15,7 +15,6 @@
 #include "i2c_obj.hpp"
 #include "command_factory.hpp"
 #include "screenManager.hpp"
-#include "debug.h"
 
 #define FLAG_VALUE 123
 
@@ -42,6 +41,7 @@ ScreenManager screenMgr;
 Debug debug;
 
 void setup_master(){
+    
     gpio_init(I2C_MASTER_SDA_PIN);
     gpio_set_function(I2C_MASTER_SDA_PIN, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_MASTER_SDA_PIN);
@@ -76,8 +76,7 @@ void run_master() {
     uint8_t buffer[4];
     //encodeCommand(cmdId,flags,screenId,paramBits, uint8_t (&bytes)[4])
     encodeCommand(i2c_scrCng, 0, 2, 0x12345, buffer);
-
-    printf("sending %d bytes\n",sizeof(buffer));
+    DEBUG_PRINTLN("run_master sending %d bytes\n",sizeof(buffer));
 
     i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, buffer, 4, false);
     sleep_ms(1000);
@@ -119,7 +118,7 @@ void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
                     screenId = thisScreen->screenId;
                 }
 
-                printf("cmdId=%d screenId=%d param=0x%05X hasParams=%d\n", cmdId, screenId, paramBits, hasParams);
+                DEBUG_PRINTLN("i2c_slave_handler cmdId=%d screenId=%d param=0x%05X hasParams=%d\n", cmdId, screenId, paramBits, hasParams);
 
                 if (activeCommand) {
                     delete activeCommand;
@@ -158,9 +157,9 @@ void core1_entry() {
 
 	sleep_ms(200);
     if (g != FLAG_VALUE)
-        printf("Problem with core 1!\n");
+        DEBUG_PRINTLN("Problem with core 1!\n");
     else
-        printf("Core 1 up\n");
+        DEBUG_PRINTLN("Core 1 up\n");
 
     while (1){
         //run_master();        
@@ -173,6 +172,8 @@ void core1_entry() {
 
 void registerAllScreens(ScreenManager& mgr) {
     // Build a non-static array so lambdas can capture mgr
+    DEBUG_PRINTLN("Start");
+
     mgr.registerScreen(ScreenEnum::MENUSCREEN, [&mgr](){ return new MenuScreen(mgr); });
     mgr.registerScreen(ScreenEnum::TESTSCREEN, [&mgr](){ return new TestScreen(mgr); });
     mgr.registerScreen(ScreenEnum::SETTINGSSCREEN, [&mgr](){ return new SettingsScreen(mgr); });
@@ -192,44 +193,42 @@ int main()
     debug.setDisplay(display);
     debug.registerVar("fb", display->getFrameBufferPtr(), DISPLAY_WIDTH*DISPLAY_HEIGHT);    
 
-    printf("Starting\n");
-    debug.printHelp();
     KeyBoard *keyboard = new KeyBoard();
 
     while (!stdio_usb_connected()) {
         sleep_ms(10);  // Wait for USB host to open the port
     }
-    printf("Debug console ready.\n");
     timetype lastUpdate = getTime();
     //display->clearBg();
     display->clear(0);
+    debug.printHelp();
     
     multicore_launch_core1(core1_entry);
     setup_slave();
     setup_master();
 	sleep_ms(500);
     uint32_t g = multicore_fifo_pop_blocking(); 
-
+ 
     registerAllScreens(screenMgr);
     screenMgr.setActiveScreen(ScreenEnum::MENUSCREEN);
     sleep_ms(1000);
 
     if (g != FLAG_VALUE)
-        printf("Problem with core 0!\n");
+        DEBUG_PRINTLN("Problem with core 0!\n");
     else {
         multicore_fifo_push_blocking(FLAG_VALUE);
-        printf("Core 0 up\n");
+        DEBUG_PRINTLN("Core 0 up");
     }
+   DEBUG_PRINTLN(" main loop");
 
     while (true) {
-        
         uint16_t deltaTimeMS = getTimeDiffMS(lastUpdate);
         lastUpdate = getTime();
         debug.poll();
         keyboard->checkKeyState(&screenMgr);
         screenMgr.update(deltaTimeMS);
         if(screenMgr.needRefresh()){
-            //printf("redraw!\n");
+            DEBUG_PRINTLN("needRefresh");
             //display->drawBitmapRow(Vec2(0,0), DISPBUFSIZE, bg01);  
             display->clear(0);
             screenMgr.draw(display);

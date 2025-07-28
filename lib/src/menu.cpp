@@ -19,7 +19,7 @@ Menu::Menu(const std::string& text, const std::vector<std::string> _its,int _sel
 }
 
 void Menu::draw(Display *disp) const {
-    TRACE("selected:%d, active:%d",selected,active);
+    TRACE_CAT(UI,"selected:%d, active:%d",selected,active);
 
     int noofItems=(int)items.size();
     term6x9->drawText(disp, label, Vec2(boundingBox.x, boundingBox.y), 255, 1);     
@@ -37,15 +37,15 @@ void Menu::draw(Display *disp) const {
             ariel5x8->drawText(disp, items[i], Vec2(boundingBox.x+2+menuOffs, boundingBox.y + i*fontHeight +2),255,1);
         }  
     }else{
-        disp->fillRect(Rect2(boundingBox.x+menuOffs, boundingBox.y, boundingBox.w, fontHeight), 0,255);
-        term6x9->drawText(disp, items[selectedMenuItem], Vec2(boundingBox.x+2+menuOffs, boundingBox.y), 255, 1);    
+        disp->fillRect(Rect2(boundingBox.x+menuOffs, boundingBox.y, boundingBox.w+4, fontHeight), 0,255);
+        ariel5x8->drawText(disp, items[selectedMenuItem], Vec2(boundingBox.x+2+menuOffs, boundingBox.y+2), 255, 1);    
     }
     disp->setInverted(false);  
 }
 
 //should really used a "value" field in the widget class and initialvalue descriptor field instead of selectedMenuitem
 void Menu::changeMenuSelection(int dirctn){
-    TRACE("direction:%d",dirctn);
+    TRACE_CAT(KEY,"direction:%d",dirctn);
 
     if(dirctn==1){ //forward
         if(selectedMenuItem<(itemCount-1)){

@@ -14,22 +14,47 @@
 
 // ------------------------------------------------------------
 // Trace categories (compile-time control)
+// use word after underscore for category mnemonic
 // ------------------------------------------------------------
-#define ENABLE_GLOBAL_DEBUG 0   // DEBUG_PRINT/DEBUG_PRINTLN used in non class functions
-#define TRACE_GENERAL  0     // General debug
-#define TRACE_UI       0   // UI-related traces
-#define TRACE_INPUT    0   // keyboard/input traces
-#define TRACE_VARS     0   // menu-related traces
-#define TRACE_DISPLAY  0   // display update traces
-#define TRACE_KEY   1   //for key related messages
+#define TRACE_GLOBAL 1   // DEBUG_PRINT/DEBUG_PRINTLN used in non class functions
+#define TRACE_BASE  1    // General debug
+#define TRACE_UI       0    // UI-related traces
+#define TRACE_INPUT    0    // keyboard/input traces
+#define TRACE_VARS     0    // menu-related traces
+#define TRACE_DISP  0    // display update traces
+#define TRACE_KEY   1       // for key related messages
+
+// Enum for category indices
+//must match TRACE_ defines above
+enum TraceCategory {
+    CAT_UI,
+    CAT_INPUT,
+    CAT_VARS,
+    CAT_DISP,
+    CAT_KEY,
+    CAT_COUNT  // helper
+};
+
+// Map enum values to human-readable names
+inline const char* TraceCategoryName[CAT_COUNT] = {
+    "UI",
+    "INP",
+    "VARS",
+    "DISP",
+    "KEY"
+};
+
+
+
 #ifdef ENABLE_SERIAL_DEBUG
 
-    // --- BASIC DEBUG MACROS ---
+    // --- BASIC DEBUG MACRO without new line ---
     #define DEBUG_PRINT(...) \
-        do { if (ENABLE_GLOBAL_DEBUG) std::printf(__VA_ARGS__); } while(0)
+        do { if (TRACE_GLOBAL) std::printf(__VA_ARGS__); } while(0)
 
+    // -- with newline and function name, use in non class code    
     #define DEBUG_PRINTLN(...) \
-        do { if (ENABLE_GLOBAL_DEBUG) { \
+        do { if (TRACE_GLOBAL) { \
             std::printf("%s: ", __func__); \
             std::printf(__VA_ARGS__); \
             std::printf("\n"); \
@@ -61,13 +86,22 @@
     // Macro to extract current class name (works in class methods)
     #define CLASS_NAME() trace_internal::class_name_impl<std::remove_reference_t<decltype(*this)>>()
 
-    // TRACE macro for class methods: [ClassName] function: message
+    // TRACE macro for base level class methods: [ClassName] function: message
     #define TRACE(fmt, ...) \
-        do { if (TRACE_GENERAL) std::printf("[%.*s] %s: " fmt "\n", (int)CLASS_NAME().size(), CLASS_NAME().data(), __func__, ##__VA_ARGS__); } while(0)
+        do { if (TRACE_BASE) std::printf("[%.*s] %s: " fmt "\n", (int)CLASS_NAME().size(), CLASS_NAME().data(), __func__, ##__VA_ARGS__); } while(0)
 
     // Category-based TRACE macro (compile-time controlled)
     #define TRACE_CAT(cat, fmt, ...) \
-        do { if (cat) std::printf("[%.*s] %s: " fmt "\n", (int)CLASS_NAME().size(), CLASS_NAME().data(), __func__, ##__VA_ARGS__); } while(0)
+        do { \
+            if (TRACE_##cat) \
+                std::printf("[%s] [%.*s] %s: " fmt "\n", \
+                    TraceCategoryName[CAT_##cat], \
+                    (int)CLASS_NAME().size(), CLASS_NAME().data(), \
+                    __func__, ##__VA_ARGS__); \
+        } while(0)
+
+
+
 
 #else
     #define DEBUG_PRINT(...)     ((void)0)

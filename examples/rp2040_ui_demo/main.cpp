@@ -157,9 +157,9 @@ void core1_entry() {
 
 	sleep_ms(200);
     if (g != FLAG_VALUE)
-        DEBUG_PRINTLN("Problem with core 1!\n");
+        printf("Problem with core 1!\n");
     else
-        DEBUG_PRINTLN("Core 1 up\n");
+        printf("Core 1 up\n");
 
     while (1){
         //run_master();        
@@ -188,25 +188,24 @@ int main()
     stdio_init_all();
     srand((unsigned int)time(0));
 	uint32_t msSinceBoot=to_ms_since_boot(get_absolute_time());
+    timetype lastUpdate = getTime();
+    while (!stdio_usb_connected()) {
+        sleep_ms(10);  // Wait for USB host to open the port
+    }
+	sleep_ms(500);
 
     Display *display=new Display();
     debug.setDisplay(display);
     debug.registerVar("fb", display->getFrameBufferPtr(), DISPLAY_WIDTH*DISPLAY_HEIGHT);    
 
-    KeyBoard *keyboard = new KeyBoard();
-
-    while (!stdio_usb_connected()) {
-        sleep_ms(10);  // Wait for USB host to open the port
-    }
-    timetype lastUpdate = getTime();
     //display->clearBg();
     display->clear(0);
     debug.printHelp();
+    KeyBoard *keyboard = new KeyBoard();
     
     multicore_launch_core1(core1_entry);
     setup_slave();
     setup_master();
-	sleep_ms(500);
     uint32_t g = multicore_fifo_pop_blocking(); 
  
     registerAllScreens(screenMgr);
@@ -214,12 +213,12 @@ int main()
     sleep_ms(1000);
 
     if (g != FLAG_VALUE)
-        DEBUG_PRINTLN("Problem with core 0!\n");
+        printf("Problem with core 0!\n");
     else {
         multicore_fifo_push_blocking(FLAG_VALUE);
-        DEBUG_PRINTLN("Core 0 up");
+        printf("Core 0 up\n");
     }
-   DEBUG_PRINTLN(" main loop");
+    DEBUG_PRINTLN(" main loop");
 
     while (true) {
         uint16_t deltaTimeMS = getTimeDiffMS(lastUpdate);
@@ -228,7 +227,7 @@ int main()
         keyboard->checkKeyState(&screenMgr);
         screenMgr.update(deltaTimeMS);
         if(screenMgr.needRefresh()){
-            DEBUG_PRINTLN("needRefresh");
+            //DEBUG_PRINTLN("needRefresh");
             //display->drawBitmapRow(Vec2(0,0), DISPBUFSIZE, bg01);  
             display->clear(0);
             screenMgr.draw(display);

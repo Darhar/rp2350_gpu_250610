@@ -19,14 +19,17 @@
         virtual int keyReleased(uint8_t key) = 0;
         virtual int keyDown(uint8_t key) = 0;
         virtual ~Screen() {}
-        uint8_t screenId = 0;
-        ScreenEnum scrEnum;
+        //uint8_t screenId = 0;
+        ScreenEnum screenId;
+        //ScreenEnum scrEnum;
         Rect2 refresh;
         std::vector<Widget*> widgets;
         int selectedIndex=-1;
         void addWidget(Widget* w, uint32_t id);
  
     protected:
+
+        void rebuildFromDescriptor(ScreenManager& mgr); 
         void drawWidgets(Display *disp) {
             // First pass: draw all inactive widgets
             for (auto* w : widgets) {
@@ -41,7 +44,8 @@
                     w->draw(disp);
                 }
             }
-        }        
+        }  
+        
     };
 
 #endif

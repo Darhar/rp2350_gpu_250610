@@ -22,6 +22,7 @@ class ScreenManager {
         Rect2 refresh;
         int keyReturn;//
     public:
+        ScreenManager();
         ~ScreenManager();
 
         void registerScreen(ScreenEnum id, ScreenFactoryFunc factory);

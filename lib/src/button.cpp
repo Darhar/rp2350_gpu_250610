@@ -30,7 +30,7 @@ const std::string& Button::getCaption() const {
 }
 
 void Button::draw(Display *disp) const {
-    TRACE("selected:%d",selected);
+    TRACE_CAT(UI,"selected:%d",selected);
     ariel5x8->drawText(disp, label, Vec2(boundingBox.x, boundingBox.y), 255, 1);
     disp->setInverted(selected);
     disp->fillRect(butRect,  0, 255);

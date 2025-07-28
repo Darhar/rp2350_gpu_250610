@@ -116,7 +116,7 @@ void Display::drawPixel(uint8_t x, uint8_t y, uint8_t colour)
 }
 
 void Display::update(void) {
-	TRACE("");
+	TRACE_CAT(DISP,"");
 	if(needRefresh){
         gpio_put(DIS_CS,0);  
 

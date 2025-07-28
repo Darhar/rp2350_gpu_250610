@@ -5,6 +5,10 @@
 #include <edit.h>
 #include <menu.h>
 
+ScreenManager::ScreenManager() {
+    TRACE("");
+}
+
 ScreenManager::~ScreenManager() {
     delete activeScreen;
 }
@@ -15,7 +19,7 @@ void ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
 }
 
 Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
-    TRACE("");
+    TRACE_CAT(UI,"");
     switch (wd.type) {
         case WidgetType::Label:
             // new Label(text, x, y, width, height)
@@ -54,7 +58,7 @@ Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
 }
 
 Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
-    TRACE("screen:%d",id);
+    TRACE_CAT(UI,"screen:%d",id);
     auto curFactory = screenObjects.find(id);
 
     if (curFactory == screenObjects.end()) {
@@ -69,8 +73,7 @@ void ScreenManager::registerFactory(ScreenEnum id, ScreenFactoryFunc func) {
 }
 
 void ScreenManager::setActiveScreen(ScreenEnum id) {
-    //TRACE("screen : %d",id);
-    TRACE_CAT(TRACE_UI, "UI trace: widget active");
+    TRACE_CAT(UI, "UI trace: widget active");
 
     delete activeScreen;
     activeScreen = buildScreenFromDescriptor(id);
@@ -93,7 +96,7 @@ void ScreenManager::draw(Display* display) {
 }
 
 void ScreenManager::keyPressed(uint8_t key) {
-    TRACE_CAT(TRACE_KEY,"");
+    TRACE_CAT(KEY,"");
     if (activeScreen) {
         keyReturn=activeScreen->keyPressed(key);
         KeyReturn cmd=decodeKeyCommand((KeyReturn)keyReturn);
@@ -104,7 +107,7 @@ void ScreenManager::keyPressed(uint8_t key) {
         }else if(cmd==KeyReturn::SCRBACK){
             setActiveScreen(MENUSCREEN);
         }
-        TRACE_CAT(TRACE_KEY,"return:%d",keyReturn);
+        TRACE_CAT(KEY,"return:%d",keyReturn);
     }
 }
 

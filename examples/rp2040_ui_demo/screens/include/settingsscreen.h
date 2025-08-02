@@ -17,7 +17,6 @@ class SettingsScreen : public Screen
 		uint16_t duration, lastTime,accDeltaTimeMS;
 		ScreenEnum     scrEnum;
         int selectedIndex = -1;
-		void rebuildFromDescriptor();
 		void seedDescriptor(ScreenManager& mgr);
 
     public:

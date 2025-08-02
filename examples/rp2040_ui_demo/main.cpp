@@ -8,11 +8,11 @@
 #include <splashscreen.h>
 #include <ctime>
 #include <time.h>
-#include "keyboard.h"
 #include <hardware/i2c.h>
 #include "pico/multicore.h"
 #include <pico/i2c_slave.h>
 #include "i2c_obj.hpp"
+#include "keyboard.h"
 #include "command_factory.hpp"
 #include "screenManager.hpp"
 

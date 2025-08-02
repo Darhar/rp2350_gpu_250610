@@ -24,7 +24,7 @@ public:
 
 private:
     //void buttonGraphic(Display *disp) const;
-    Size2 buttSize;
+    //Size2 buttSize;
     Vec2 buttonPos;
     Rect2 butRect;
     const uint8_t buttWidth=40;  

@@ -27,6 +27,5 @@ class TestScreen : public Screen
 		std::string title;
 		ScreenManager& mgr;
 		ScreenEnum     scrEnum;
-		void rebuildFromDescriptor();
 		void seedDescriptor(ScreenManager& mgr);
 };

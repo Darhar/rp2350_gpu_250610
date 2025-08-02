@@ -38,18 +38,18 @@ void MenuScreen::update(uint16_t deltaTimeMS) {
 }
 
 void MenuScreen::draw(Display *display) {
-    TRACE("");
+    TRACE_CAT(UI,"");
     display->setInverted(false);
     funkyV16->drawText(display, menuItemNames[currentMenuItem][0],Vec2( animationCounter+10, 10), 255, 1);
 }
 
 int MenuScreen::keyPressed(uint8_t key) {
-    TRACE("");
+    TRACE_CAT(KEY,"");
     if(isAnimating)
         return 0;
 
     if(key == KEY_UP) {
-        TRACE("key Up");
+        TRACE_CAT(KEY,"key Up");
         if(selectedMenuItem < menuCount-1) {
             selectedMenuItem++;
             isAnimating = true;
@@ -57,7 +57,7 @@ int MenuScreen::keyPressed(uint8_t key) {
 
         }
     } else if (key == KEY_DOWN) {
-        TRACE("key Dwn");
+        TRACE_CAT(KEY,"key Dwn");
         if(selectedMenuItem != 0) {
             selectedMenuItem--;
             isAnimating = true;
@@ -65,11 +65,11 @@ int MenuScreen::keyPressed(uint8_t key) {
 
         }
     } else if(key == KEY_OK) {
-        TRACE("key OK");
+        TRACE_CAT(KEY,"key OK");
         refresh=Rect2(0,0,158,64);
         return encodeKeyReturn(KeyReturn::SCRSELECT, selectedMenuItem+1);
     }
-    TRACE("scr selectionItem %d",selectedMenuItem);
+    TRACE_CAT(KEY,"scr selectionItem %d",selectedMenuItem);
     return 0;
 }
 

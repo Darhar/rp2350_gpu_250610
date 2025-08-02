@@ -15,7 +15,7 @@ Button::Button(const std::string& label,
     caption = state ? captionOn : captionOff;
     selectable = true;
     widgetType = WidgetType::Button;
-    buttSize=Size2(buttWidth,boundingBox.h);
+    Size2 buttSize=Size2(buttWidth,boundingBox.h);
     buttonPos=Vec2(boundingBox.x+boundingBox.w-buttSize.w,boundingBox.y);
     butRect=Rect2(buttonPos,buttSize);   
 }

@@ -17,12 +17,12 @@
 // use word after underscore for category mnemonic
 // ------------------------------------------------------------
 #define TRACE_GLOBAL 1   // DEBUG_PRINT/DEBUG_PRINTLN used in non class functions
-#define TRACE_BASE  1    // General debug
+#define TRACE_BASE  0    // General debug
 #define TRACE_UI       0    // UI-related traces
-#define TRACE_INPUT    0    // keyboard/input traces
+#define TRACE_INPUT    1    // keyboard/input traces
 #define TRACE_VARS     0    // menu-related traces
 #define TRACE_DISP  0    // display update traces
-#define TRACE_KEY   1       // for key related messages
+#define TRACE_KEY   0       // for key related messages
 
 // Enum for category indices
 //must match TRACE_ defines above

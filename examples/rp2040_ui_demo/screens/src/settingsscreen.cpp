@@ -1,4 +1,5 @@
 #include "settingsscreen.h"
+
 std::vector<std::string> menuA
 {
     "Item A" ,
@@ -12,7 +13,7 @@ SettingsScreen::SettingsScreen(ScreenManager& mgr) : mgr(mgr), scrEnum(ScreenEnu
     TRACE("");
     seedDescriptor(mgr);
     screenId = scrEnum;
-    rebuildFromDescriptor();
+    rebuildFromDescriptor(mgr);
     funkyV16->setClearSpace(true);
     title =  "Settings Screen";
     refresh=Rect2(0,0,158,64);
@@ -28,19 +29,13 @@ SettingsScreen::~SettingsScreen() {
 void SettingsScreen::update(uint16_t deltaTimeMS) {}
 
 void SettingsScreen::draw(Display *disp) {
+    TRACE_CAT(UI,"selectedIndex:%d, type:%d",selectedIndex,widgets[selectedIndex]->getWidgetType());
     disp->setInverted(false);
-    TRACE("selectedIndex:%d, type:%d",selectedIndex,widgets[selectedIndex]->getWidgetType());
     drawWidgets(disp);
-    /*
-    for (auto* w : widgets){
-        w->draw(disp);  
-    }    
-    */
-    
 }
 
 void SettingsScreen::seedDescriptor(ScreenManager& mgr) {
-    TRACE("");
+    TRACE_CAT(UI,"");
     auto& desc = mgr.getDescriptor(ScreenEnum::SETTINGSSCREEN);
     if (desc.widgets.empty()) {
         desc.widgets.push_back({
@@ -72,7 +67,7 @@ void SettingsScreen::seedDescriptor(ScreenManager& mgr) {
     }
 }
 void SettingsScreen::commitActiveMenuValue() {
-    TRACE("");
+    TRACE_CAT(UI,"");
 
     auto* w = widgets[selectedIndex];
     auto& desc = mgr.getDescriptor(scrEnum);
@@ -101,18 +96,9 @@ void SettingsScreen::commitActiveMenuValue() {
 
     }else return;
 }
-void SettingsScreen::rebuildFromDescriptor() {
-    TRACE("");
-    widgets.clear();
-    auto& desc = mgr.getDescriptor(scrEnum);
-    for (auto& wd : desc.widgets) {
-        Widget* w = mgr.createWidgetFromDescriptor(wd);
-        addWidget(w, wd.widgetId);
-    }
-}
 
 int SettingsScreen::keyPressed(uint8_t key) {
-    TRACE("selectedIndex:%d, type:%d",selectedIndex,widgets[selectedIndex]->getWidgetType());
+    TRACE_CAT(KEY,"selectedIndex:%d, type:%d",selectedIndex,widgets[selectedIndex]->getWidgetType());
 
     if(key == KEY_BACK)
         return encodeKeyReturn(KeyReturn::SCRSELECT, ScreenEnum::MENUSCREEN);
@@ -122,21 +108,21 @@ int SettingsScreen::keyPressed(uint8_t key) {
         bool normNavig=true;
 
         int dir = (key == KEY_DOWN) ? -1 : 1;
-        TRACE("KEY_UP || KEY_DOWN dir: %d",dir);
+        TRACE_CAT(KEY,"KEY_UP || KEY_DOWN dir: %d",dir);
         //test if current item is active
 
         if(widgets[selectedIndex]->getWidgetType() == WidgetType::Menu){
-            TRACE("is Menu");
+            TRACE_CAT(KEY,"is Menu");
             Menu* menu = static_cast<Menu*>(widgets[selectedIndex]);
 
             if(menu->isActive()){
-                TRACE("key up/dwn Menu active");
+                TRACE_CAT(KEY,"key up/dwn Menu active");
                 normNavig=false;
                 menu->changeMenuSelection(dir);
             }
         }            
         if(normNavig){
-            TRACE("normNavig sel Indx:%d",selectedIndex);
+            TRACE_CAT(KEY,"normNavig sel Indx:%d",selectedIndex);
 
             int original = selectedIndex;
             do {
@@ -146,8 +132,8 @@ int SettingsScreen::keyPressed(uint8_t key) {
             for (size_t i = 0; i < widgets.size(); ++i) {//need to change widget selected field
                 widgets[i]->setSelected(i == selectedIndex);
 
-                TRACE("widget %d is a %d",i, widgets[i]->getWidgetType());
-                if(i == selectedIndex) TRACE(" and selected"); else TRACE("");
+                TRACE_CAT(KEY,"widget %d is a %d",i, widgets[i]->getWidgetType());
+                if(i == selectedIndex) TRACE_CAT(KEY," and selected"); else TRACE_CAT(KEY,"");
             }
         }
         refresh=Rect2(0,0,158,64);
@@ -156,7 +142,7 @@ int SettingsScreen::keyPressed(uint8_t key) {
         refresh=Rect2(0,0,158,64);
     }
     else if(key == KEY_OK){
-        TRACE("key OK");
+        TRACE_CAT(KEY,"key OK");
 
         if(widgets[selectedIndex]->getWidgetType() == WidgetType::Menu){
 
@@ -166,13 +152,13 @@ int SettingsScreen::keyPressed(uint8_t key) {
                 // Commit value to descriptor
                 commitActiveMenuValue(); //will set menu inactive
             } else {
-                TRACE("not Active ");
+                TRACE_CAT(KEY,"not Active ");
                 // Activate it for selecting
                 //widgetToTop(selectedIndex);
                 menu->setActive(true);
             }
         } 
-        TRACE("selectedIndex:%d, type:%d",selectedIndex,widgets[selectedIndex]->getWidgetType());
+        TRACE_CAT(KEY,"selectedIndex:%d, type:%d",selectedIndex,widgets[selectedIndex]->getWidgetType());
     }
 
     refresh=Rect2(0,0,158,64);

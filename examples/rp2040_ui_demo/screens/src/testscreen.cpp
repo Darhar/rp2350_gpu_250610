@@ -1,11 +1,10 @@
 #include "testscreen.h"
 
 TestScreen::TestScreen(ScreenManager& mgr) : mgr(mgr), scrEnum(ScreenEnum::TESTSCREEN){
-
-    printf("[Test] constructor\n");
+    TRACE("");
     seedDescriptor(mgr);
     screenId = scrEnum;
-    rebuildFromDescriptor();
+    rebuildFromDescriptor(mgr);
     title =  "Test Screen";
     duration=0; 
     funkyV16->setClearSpace(true);
@@ -25,15 +24,19 @@ void TestScreen::update(uint16_t deltaTimeMS) {
     if(accDeltaTimeMS>200){}
 }
 
-void TestScreen::draw(Display* display) {
-    //printf("drawing %d widgets\n",widgets.size());
-    //int widgNo=0;
-    for (auto* w : widgets){
-        //printf("%d\n",widgNo++);
+void TestScreen::draw(Display* disp) {
+    TRACE_CAT(UI,"selectedIndex:%d, type:%d",selectedIndex,widgets[selectedIndex]->getWidgetType());
+    disp->setInverted(false);
+    drawWidgets(disp);
+/*
+    for (auto* w : widgets){    
         w->draw(display);  
     }
+*/
 }
+/*
 void TestScreen::rebuildFromDescriptor() {
+
     widgets.clear();
     auto& desc = mgr.getDescriptor(scrEnum);
     for (auto& wd : desc.widgets) {
@@ -41,6 +44,8 @@ void TestScreen::rebuildFromDescriptor() {
         addWidget(w, wd.widgetId);
     }
 }
+
+*/
 
 void TestScreen::seedDescriptor(ScreenManager& mgr) {
     auto& desc = mgr.getDescriptor(scrEnum);

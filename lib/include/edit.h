@@ -1,5 +1,4 @@
-#ifndef EDIT_H
-#define EDIT_H
+#pragma once
 
 #include <string>
 #include "widget.h"
@@ -16,7 +15,6 @@ class Edit : public Widget {
         void draw(Display *display) const override;
 	
     private:
-        Size2 buttSize;
         Vec2 buttonPos;
         Rect2 butRect;
         const uint8_t buttWidth=40;
@@ -25,4 +23,3 @@ class Edit : public Widget {
         int value;
 };
 
-#endif 

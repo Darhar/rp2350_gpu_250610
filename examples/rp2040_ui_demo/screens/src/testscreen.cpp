@@ -1,15 +1,14 @@
 #include "testscreen.h"
 
-TestScreen::TestScreen(ScreenManager& mgr) : mgr(mgr), scrEnum(ScreenEnum::TESTSCREEN){
+TestScreen::TestScreen(ScreenManager& mgr) : Screen(mgr, ScreenEnum::TESTSCREEN){
     TRACE("");
-    seedDescriptor(mgr);
-    screenId = scrEnum;
-    rebuildFromDescriptor(mgr);
+    seedConfig();
+    seedState();
+    rebuildFromDescriptor();
     title =  "Test Screen";
     duration=0; 
     funkyV16->setClearSpace(true);
     refresh=Rect2(0,0,158,64);
-
 }
 
 TestScreen::~TestScreen() {
@@ -28,81 +27,43 @@ void TestScreen::draw(Display* disp) {
     TRACE_CAT(UI,"selectedIndex:%d, type:%d",selectedIndex,widgets[selectedIndex]->getWidgetType());
     disp->setInverted(false);
     drawWidgets(disp);
-/*
-    for (auto* w : widgets){    
-        w->draw(display);  
-    }
-*/
-}
-/*
-void TestScreen::rebuildFromDescriptor() {
-
-    widgets.clear();
-    auto& desc = mgr.getDescriptor(scrEnum);
-    for (auto& wd : desc.widgets) {
-        Widget* w = mgr.createWidgetFromDescriptor(wd);
-        addWidget(w, wd.widgetId);
-    }
 }
 
-*/
-
-void TestScreen::seedDescriptor(ScreenManager& mgr) {
-    auto& desc = mgr.getDescriptor(scrEnum);
-    if (desc.widgets.empty()) {
-        desc.widgets.push_back({
+void TestScreen::seedConfig() {
+    auto& cfg = mgr.getConfig(screenId);
+    cfg.clear();
+    cfg.push_back( 
+        WidgetConfig{
             WidgetType::Label,  // type
             1,                  // widgetId
             "First Label",      // initialText    
             0, 1, 100, 10,       // x, y, w, h
             0                   // selectable
-        });
-        desc.widgets.push_back({
-            WidgetType::Button,
-            1,
-            "WiFi",      // label
-            10, 20, 80, 12,
-            true,        // selectable
-            0, 0, 0,     // irrelevant Edit fields
-            true,        // toggleState
-            "ON", "OFF"
-        });
-        desc.widgets.push_back({
+        } 
+    );
+    cfg.push_back( 
+        WidgetConfig{
             WidgetType::Edit,
             2,
             "Volume",
-            10, 35, 80, 12,
+            0, 12, 80, 12,
             true,
             50, 0, 100,  // initialValue, minValue, maxValue
-            false, "", "" // irrelevant Button fields
-        });
-    }
-}
-
-void TestScreen::commitActiveEditValue() {
-    auto* w = widgets[selectedIndex];
-    auto& desc = mgr.getDescriptor(scrEnum);
-
-    if (w->getWidgetType() == WidgetType::Button) {
-        Button* btn = static_cast<Button*>(w);
-        for (auto& wd : desc.widgets) {
-            if (wd.widgetId == btn->getWidgetId()) {
-                wd.toggleState = btn->getState();
-            }
-        }
-    }else if (w->getWidgetType() == WidgetType::Edit){
-        Edit* edit = static_cast<Edit*>(w);
-        if (!edit->isActive()) return;
-
-        int val = edit->getValue();
-        for (auto& wd : desc.widgets) {
-            if (wd.widgetId == edit->getWidgetId()) {
-                wd.initialValue = val;
-                break;
-            }
-        }
-        edit->setActive(false);        
-    }else return;
+            false, "", "" // irrelevant Button fields        
+        } 
+    );  
+    cfg.push_back( 
+        WidgetConfig{
+            WidgetType::Button,
+            3,
+            "but2",      // label
+            0, 26, 80, 12,
+            true,        // selectable
+            0, 0, 0,     // irrelevant Edit fields
+            true,        // toggleState
+            "ON", "OFF"           
+        } 
+    );        
 }
 
 int TestScreen::keyPressed(uint8_t key) {
@@ -138,30 +99,26 @@ int TestScreen::keyPressed(uint8_t key) {
 
     else if (key == KEY_OK && selectedIndex != -1) {
         Widget* w = widgets[selectedIndex];
-
         if (w->getWidgetType() == WidgetType::Button) {
             Button* btn = static_cast<Button*>(w);
             btn->toggle();
-            commitActiveEditValue();
+            commitWidgetValues();
             refresh = Rect2(0, 0, 158, 64);
         }
 
         if (w->getWidgetType() == WidgetType::Edit) {
-
             Edit* edit = static_cast<Edit*>(w);
-
             if (edit->isActive()) {
                 // Commit value to descriptor
-                commitActiveEditValue(); 
+                commitWidgetValues(); 
+                edit->setActive(false);
             } else {
                 // Activate it for editing
                 edit->setActive(true);
             }
-
             refresh = Rect2(0, 0, 158, 64);  // mark for redraw
         }
     }
-  
   
     else if(key == KEY_BACK){
         return encodeKeyReturn(KeyReturn::SCRSELECT, ScreenEnum::MENUSCREEN);

@@ -17,7 +17,9 @@ Button::Button(const std::string& label,
     widgetType = WidgetType::Button;
     Size2 buttSize=Size2(buttWidth,boundingBox.h);
     buttonPos=Vec2(boundingBox.x+boundingBox.w-buttSize.w,boundingBox.y);
-    butRect=Rect2(buttonPos,buttSize);   
+    butRect=Rect2(buttonPos,buttSize);  
+    TRACE_CAT(UI,"buttSize w,h:%d,%d buttonPos x,y:%d,%d butRect w,h:%d,%d",buttSize.w,buttSize.h,buttonPos.x,buttonPos.y,butRect.w,butRect.h);
+
 }
 
 void Button::toggle() {

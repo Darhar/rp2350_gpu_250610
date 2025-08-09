@@ -18,19 +18,10 @@ private:
     };
     int selectedIndex = -1;
     std::string title;
-    ScreenManager& mgr;
-    void buildFromDescriptor();
 
 public:
-    AboutScreen(ScreenManager& mgr) : mgr(mgr){
-        printf("[AboutScreen] loading...\n");
-        screenId = ScreenEnum::ABOUTSCREEN;
-        scroll = 0;
-        refresh=Rect2(0,0,158,64);
-        printf("[AboutScreen] Done\n");
-    }
+    AboutScreen(ScreenManager& mgr);
     ~AboutScreen();
-	//void addWidget(Widget* widget,uint32_t widgetId);
     void update(uint16_t deltaTimeMS);
     void draw(Display *display);
     int keyPressed(uint8_t key);

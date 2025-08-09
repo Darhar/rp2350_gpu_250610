@@ -29,24 +29,12 @@ void Debug::poll() {
             printf("Input too long, clearing buffer.\n");
         }
     }
-/*
-    int c;
-    while ((c = getchar_timeout_us(0)) != PICO_ERROR_TIMEOUT) {
-        if (c == '\r' || c == '\n') {
-            inputBuffer[inputIndex] = '\0';
-            if (inputIndex > 0) {
-                processCommand(inputBuffer);
-                inputIndex = 0;
-            }
-        } else if (inputIndex < MAX_INPUT - 1) {
-            inputBuffer[inputIndex++] = (char)c;
-        }
-    }
-*/
 }
+
 void Debug::setDisplay(Display* disp) {
     display = disp;
 }
+
 void Debug::processCommand(const char* cmd) {
     //char code;
     uintptr_t addr;

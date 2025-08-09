@@ -22,7 +22,6 @@ struct  WidgetDescriptor {
     std::string captionOn;
     std::string captionOff;
     // for Menu
-    std::vector<std::string> menuItems;      // for MENU
     int  initialSelection;
 };
 

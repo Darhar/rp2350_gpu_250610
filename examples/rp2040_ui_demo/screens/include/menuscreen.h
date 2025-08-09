@@ -7,7 +7,6 @@
 class MenuScreen : public Screen
 {
 private:
-    ScreenManager& mgr;
     const uint8_t menuCount = MENUCOUNT;
     const std::string menuItemNames[MENUCOUNT][7] = {
         {"Test", "", "", "", "", "", ""},
@@ -24,11 +23,9 @@ private:
     uint8_t option;
 
 public:
-    //MenuScreen();
     MenuScreen(ScreenManager& mgr);
     ~MenuScreen();
 
-   // void addWidget(Widget* widget,uint32_t widgetId);
     void update(uint16_t deltaTimeMS);
     void draw(Display *display);
     int keyPressed(uint8_t key);

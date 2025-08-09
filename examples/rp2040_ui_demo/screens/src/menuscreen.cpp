@@ -2,11 +2,10 @@
 #include <keyboard.h>
 
 
-MenuScreen::MenuScreen(ScreenManager& mgr)
-  : mgr(mgr)   // initializer list
+MenuScreen::MenuScreen(ScreenManager& mgr) : Screen(mgr, ScreenEnum::MENUSCREEN)
+
 {
     TRACE("");
-    screenId = ScreenEnum::MENUSCREEN;
     currentMenuItem = 0;
     selectedMenuItem = 0;
     isAnimating = false;

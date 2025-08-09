@@ -1,5 +1,4 @@
-#ifndef LABEL_H
-#define LABEL_H
+#pragma once
 
 #include <string>
 #include "widget.h"
@@ -13,4 +12,3 @@ public:
 
 };
 
-#endif // LABEL_H

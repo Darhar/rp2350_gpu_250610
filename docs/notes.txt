@@ -982,3 +982,39 @@ and a text buffer
 A console widget will have a buffer of a definesd size
 There will be a specific edit widget to handle fractions
 Text input needs a special widget, on screen there is room for 5 rows and 22 clumns of letters in boxes
+
+-----------fixing circular includes------------
+Here’s a concise recap of what we did to swap out the old include‐guard for #pragma once and smooth over the resulting include‐order issues:
+
+1. In screen.h
+
+Removed the
+
+	#ifndef SCREEN_H
+	#define SCREEN_H
+	… 
+	#endif
+Added a single line at the top:
+
+	#pragma once
+Dropped the #include "screenManager.hpp" (which had been causing a circular include).
+
+Forward‐declared class ScreenManager; so seedState() and rebuildFromDescriptor() could still reference it.
+
+2. In every derived‐screen header (e.g. settingsscreen.h)
+
+Removed any standalone copy of the enum ScreenEnum { … }.
+
+Added #include "screen.h" instead, to get both Screen and ScreenEnum exactly once.
+
+3. In screenManager.hpp
+
+Ensured Screen and ScreenEnum are declared before use by either:
+
+Including screen.h at the top (with #pragma once preventing recursion), or
+
+Forward‐declaring them before the using ScreenFactoryFunc and map declarations.
+
+Pulled in <map> so std::map<ScreenEnum,…> is known.
+
+C

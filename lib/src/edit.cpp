@@ -5,7 +5,7 @@ Edit::Edit(const std::string& text, int x, int y, int width, int height, int val
     : Widget(text, x, y, width, height), value(value_), minValue(mn), maxValue(mx) 
 {
     widgetType = WidgetType::Edit;
-    buttSize = Size2(buttWidth, boundingBox.h);
+    Size2 buttSize = Size2(buttWidth, boundingBox.h);
     buttonPos = Vec2(boundingBox.x + boundingBox.w - buttSize.w, boundingBox.y);
     butRect = Rect2(buttonPos, buttSize);
     selectable = true; 
@@ -13,8 +13,6 @@ Edit::Edit(const std::string& text, int x, int y, int width, int height, int val
 }
 
 void Edit::draw(Display *disp) const {
-    //printf("draw Edit\n");
-
     //label
     ariel5x8->drawText(disp, label, Vec2(boundingBox.x, boundingBox.y), 255, 1);
     disp->setInverted(selected);

@@ -1,5 +1,12 @@
 #include "basicscreen.h"
 
+BasicScreen::BasicScreen(ScreenManager& mgr) : Screen(mgr, ScreenEnum::BASICSCREEN){
+    TRACE("");
+    option = option;
+    title =  "Basic Screen";
+    refresh=Rect2(0,0,158,64);
+}
+
 BasicScreen::~BasicScreen() {}
 
 void BasicScreen::update(uint16_t deltaTimeMS) {}

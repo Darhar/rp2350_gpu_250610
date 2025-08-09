@@ -47,19 +47,13 @@ Image *ariel5x8= new Image(
 timetype getTime() {
     timetype now;
     now = to_ms_since_boot(get_absolute_time());
-
-    // printf("Time: %d\n", now);
     return now;
 }
 
 uint16_t getTimeDiffMS(timetype start) {
     timetype end = getTime();
     uint16_t timeDiffMS = 0;
-
     timeDiffMS = (end - start);
-
-
-    // printf("Time diff: %d\n", timeDiffMS);
     return timeDiffMS;
 }
 

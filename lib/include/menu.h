@@ -17,19 +17,20 @@ class Menu : public Widget {
 
         void draw(Display *display) const override;
         void changeMenuSelection(int dirctn);
-        int  getValue() const { return selectedMenuItem; }        
+        int  getValue() const {
+            TRACE_CAT(UI,"selectedMenuItem:%d",selectedMenuItem);
+            return selectedMenuItem;
+        }        
 
     private:
         std::vector<std::string> items;
-        //int selectedIndex;
         int itemCount;
         int selectedMenuItem;
         int  fontHeight=10;
         int  fontWidth=5;
         bool show=false;
         int menuOffs=50;
-        //int                      itemHeight;
-        //SelectionChangedFn       onSelectionChanged;    
+   
 };
 
 

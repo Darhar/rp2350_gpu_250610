@@ -5,6 +5,8 @@
 #include <edit.h>
 #include <menu.h>
 
+inline std::map<ScreenEnum, ScreenFactoryFunc> screenObjects;
+
 ScreenManager::ScreenManager() {
     TRACE("");
 }
@@ -18,45 +20,6 @@ void ScreenManager::registerScreen(ScreenEnum id, ScreenFactoryFunc factory) {
     ++screenCount;
 }
 
-Widget* ScreenManager::createWidgetFromDescriptor(const WidgetDescriptor& wd) {
-    TRACE_CAT(UI,"");
-    switch (wd.type) {
-        case WidgetType::Label:
-            // new Label(text, x, y, width, height)
-            return new Label(
-                wd.label,
-                wd.x, wd.y,
-                wd.width, wd.height
-            );
-
-        case WidgetType::Button:
-            return new Button(
-                wd.label, 
-                wd.captionOn, 
-                wd.captionOff,
-                wd.x, wd.y, wd.width, wd.height,
-                wd.toggleState);
-
-        case WidgetType::Edit:
-            return new Edit(
-                wd.label,
-                wd.x, wd.y, wd.width, wd.height,
-                wd.initialValue,
-                wd.minValue, wd.maxValue);
-
-        case WidgetType::Menu:
-            return new Menu(
-                wd.label,
-                wd.menuItems,
-                wd.initialSelection,
-                wd.x, wd.y,wd.width, wd.height);
-        // … handle other widget types …
-        default:
-            // Unknown widget type—return a nullptr or a placeholder
-            return nullptr;
-    }
-}
-
 Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
     TRACE_CAT(UI,"screen:%d",id);
     auto curFactory = screenObjects.find(id);
@@ -65,6 +28,8 @@ Screen* ScreenManager::buildScreenFromDescriptor(ScreenEnum id) {
         return nullptr;    // or throw, or fallback
     }
     Screen* screen = curFactory->second();  
+    TRACE_CAT(UI,"out");
+
     return screen;
 }
 
@@ -72,11 +37,108 @@ void ScreenManager::registerFactory(ScreenEnum id, ScreenFactoryFunc func) {
     screenObjects[id] = func;
 }
 
+Widget* ScreenManager::createWidgetFromConfigAndState(
+    const WidgetConfig& c, WidgetState* st)
+{
+    switch (c.type) {
+        case WidgetType::Menu: {
+            // Default to config’s initialSelection
+            int selected = c.initialSelection;
+
+            if (st) {
+                if (auto p = std::get_if<int>(&st->data)) {
+                    selected = *p;
+                } else {
+                    // Type mismatch (e.g., bool/monostate) — don’t crash, just log
+                    TRACE_CAT(UI,
+                        "Menu state type mismatch: widgetId=%u stateIndex=%zu (expected int). Falling back to initial=%d",
+                        c.widgetId, st->data.index(), c.initialSelection);
+                }
+            } else {
+                TRACE_CAT(UI,
+                    "Menu has no saved state (widgetId=%u). Using initial=%d",
+                    c.widgetId, c.initialSelection);
+            }
+
+            TRACE_CAT(UI,
+                "Menu ctor: widgetId=%u using selected=%d (st=%p)",
+                c.widgetId, selected, (void*)st);
+
+            // Build items vector from config
+            std::vector<std::string> items;
+            items.reserve(c.menuItems.size());
+            for (const auto& s : c.menuItems) items.emplace_back(s);
+
+            return new Menu(
+                std::string(c.label),
+                items,
+                selected,
+                c.x, c.y, c.width, c.height
+            );
+        }
+        case WidgetType::Edit: {
+            int initValue = st
+            ? std::get<int>(st->data)
+            : c.initialValue;
+
+            return new Edit(
+                c.label,
+                c.x, c.y, c.width, c.height,
+                initValue,
+                c.minValue, c.maxValue
+            );
+        }
+        /*
+        case WidgetType::Button: {
+            bool toggState = st
+            ? std::get<int>(st->data)
+            : c.toggleOn;
+
+            return new Button(
+                c.label, 
+                c.captionOn, 
+                c.captionOff,
+                c.x, c.y, c.width, c.height,
+                toggState
+            );
+        }        
+        */
+        case WidgetType::Button: {
+            bool toggled = c.toggleOn;
+            if (st) {
+                if (auto pb = std::get_if<bool>(&st->data)) toggled = *pb;
+                else TRACE_CAT(UI, "Button state type mismatch id=%u idx=%zu; using default=%d",
+                            c.widgetId, st->data.index(), (int)c.toggleOn);
+            }
+
+            // adapt parameter order to your Button ctor
+            return new Button(
+                std::string(c.label),
+                std::string(c.captionOn),
+                std::string(c.captionOff),
+                c.x, c.y, c.width, c.height,
+                toggled
+            );
+        }
+
+        case WidgetType::Label: {
+            return new Label(
+                std::string(c.label), 
+                c.x, c.y, c.width, c.height
+            );
+        }        
+        default:
+        return nullptr;
+    }
+}
+
 void ScreenManager::setActiveScreen(ScreenEnum id) {
     TRACE_CAT(UI, "UI trace: widget active");
 
     delete activeScreen;
     activeScreen = buildScreenFromDescriptor(id);
+    TRACE_CAT(UI, "out");
+
 }
 
 ScreenDescriptor& ScreenManager::getDescriptor(ScreenEnum id){

@@ -1,0 +1,115 @@
+=== Task: Stsartup ===
+
+[KeyBoard] KeyBoard: 
+registerAllScreens: Start
+[UI] [ScreenManager] setActiveScreen: UI trace: widget active
+[UI] [ScreenManager] buildScreenFromDescriptor: screen:0
+[MenuScreen] MenuScreen: 
+[UI] [ScreenManager] buildScreenFromDescriptor: out
+[UI] [ScreenManager] setActiveScreen: out
+Core 0 up
+main:  main loop
+[UI] [MenuScreen] draw: 
+Core 1 up
+=== Task: settingsscreen ===
+[KeyBoard] checkKeyState: key:1
+[KEY] [ScreenManager] keyPressed: 
+[KEY] [MenuScreen] keyPressed: 
+[KEY] [MenuScreen] keyPressed: key Up
+[KEY] [MenuScreen] keyPressed: scr selectionItem 1
+[KEY] [ScreenManager] keyPressed: return:0
+[UI] [MenuScreen] draw: 
+[KeyBoard] checkKeyState: key:0
+[UI] [MenuScreen] draw: 
+=== Task: Open Settings ===
+[KeyBoard] checkKeyState: key:4
+[KEY] [ScreenManager] keyPressed: 
+[KEY] [MenuScreen] keyPressed: 
+[KEY] [MenuScreen] keyPressed: key OK
+[UI] [ScreenManager] setActiveScreen: UI trace: widget active
+[UI] [ScreenManager] buildScreenFromDescriptor: screen:2
+[SettingsScreen] SettingsScreen: 
+[UI] [Screen] seedState: seedState: add id=1 (defaulted)
+[UI] [ScreenManager] createWidgetFromConfigAndState: Menu ctor: widgetId=1 using selected=0 (st=2000D348)
+[Widget] Widget: 
+[Menu] Menu: 
+[UI] [Screen] addWidget: id:1
+[Widget] setSelected: 1 selected
+[Screen] addWidget: out
+[UI] [ScreenManager] buildScreenFromDescriptor: out
+[UI] [ScreenManager] setActiveScreen: out
+[KEY] [ScreenManager] keyPressed: return:33
+[UI] [SettingsScreen] draw: selectedIndex:0, type:3
+[UI] [const Menu] draw: selected:1, active:0
+[KeyBoard] checkKeyState: key:0
+=== Task: Activate Menu ===
+[KeyBoard] checkKeyState: key:4
+[KEY] [ScreenManager] keyPressed: 
+[KEY] [SettingsScreen] keyPressed: selectedIndex:0, type:3
+[KEY] [SettingsScreen] keyPressed: key OK
+[KEY] [SettingsScreen] keyPressed: not Active 
+[Widget] setActive: 1 active
+[KEY] [SettingsScreen] keyPressed: selectedIndex:0, type:3
+[KEY] [ScreenManager] keyPressed: return:0
+[UI] [SettingsScreen] draw: selectedIndex:0, type:3
+[UI] [const Menu] draw: selected:1, active:1
+[KeyBoard] checkKeyState: key:0
+=== Task: Navigate Menu ===
+[KeyBoard] checkKeyState: key:1
+[KEY] [ScreenManager] keyPressed: 
+[KEY] [SettingsScreen] keyPressed: selectedIndex:0, type:3
+[KEY] [SettingsScreen] keyPressed: KEY_UP || KEY_DOWN dir: 1
+[KEY] [SettingsScreen] keyPressed: is MenuI
+[KEY] [SettingsScreen] keyPressed: key up/dwn Menu active
+[KEY] [Menu] changeMenuSelection: direction:1
+[KEY] [ScreenManager] keyPressed: return:0
+[UI] [SettingsScreen] draw: selectedIndex:0, type:3
+[UI] [const Menu] draw: selected:1, active:1
+[KeyBoard] checkKeyState: key:0
+=== Task: Select Item  ===
+[KeyBoard] checkKeyState: key:4
+[KEY] [ScreenManager] keyPressed: 
+[KEY] [SettingsScreen] keyPressed: selectedIndex:0, type:3
+[KEY] [SettingsScreen] keyPressed: key OK
+[UI] [const Menu] getValue: selectedMenuItem:1
+[UI] [Screen] commitWidgetValues: commit: Menu widgetId=1 value=1
+[Widget] setActive: 1 not active
+[UI] [Screen] commitWidgetValues: state: id=1 int=1
+[KEY] [SettingsScreen] keyPressed: selectedIndex:0, type:3
+[KEY] [ScreenManager] keyPressed: return:0
+[UI] [SettingsScreen] draw: selectedIndex:0, type:3
+[UI] [const Menu] draw: selected:1, active:0
+[KeyBoard] checkKeyState: key:0
+=== Task: Back ===
+[KeyBoard] checkKeyState: key:5
+[KEY] [ScreenManager] keyPressed: 
+[KEY] [SettingsScreen] keyPressed: selectedIndex:0, type:3
+[UI] [ScreenManager] setActiveScreen: UI trace: widget active
+[UI] [ScreenManager] buildScreenFromDescriptor: screen:0
+[MenuScreen] MenuScreen: 
+[UI] [ScreenManager] buildScreenFromDescriptor: out
+[UI] [ScreenManager] setActiveScreen: out
+[KEY] [ScreenManager] keyPressed: return:1
+[UI] [MenuScreen] draw: 
+[KeyBoard] checkKeyState: key:0
+=== Task: Activate Menu 2 ===
+[KeyBoard] checkKeyState: key:4
+[KEY] [ScreenManager] keyPressed: 
+[KEY] [MenuScreen] keyPressed: 
+[KEY] [MenuScreen] keyPressed: key OK
+[UI] [ScreenManager] setActiveScreen: UI trace: widget active
+[UI] [ScreenManager] buildScreenFromDescriptor: screen:2
+[SettingsScreen] SettingsScreen: 
+[UI] [Screen] seedState: seedState: keep id=1
+[UI] [ScreenManager] createWidgetFromConfigAndState: Menu ctor: widgetId=1 using selected=1 (st=2000D348)
+[Widget] Widget: 
+[Menu] Menu: 
+[UI] [Screen] addWidget: id:1
+[Widget] setSelected: 1 selected
+[Screen] addWidget: out
+[UI] [ScreenManager] buildScreenFromDescriptor: out
+[UI] [ScreenManager] setActiveScreen: out
+[KEY] [ScreenManager] keyPressed: return:33
+[UI] [SettingsScreen] draw: selectedIndex:0, type:3
+[UI] [const Menu] draw: selected:1, active:0
+[KeyBoard] checkKeyState: key:0

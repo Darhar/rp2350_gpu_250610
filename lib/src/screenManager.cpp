@@ -141,10 +141,6 @@ void ScreenManager::setActiveScreen(ScreenEnum id) {
 
 }
 
-ScreenDescriptor& ScreenManager::getDescriptor(ScreenEnum id){
-    return screenData[id];
-}
-
 void ScreenManager::update(uint16_t deltaTimeMS) {
     if (activeScreen) {
         activeScreen->update(deltaTimeMS);

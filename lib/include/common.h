@@ -24,8 +24,8 @@
 	#define DISPLAY_HEIGHT 64
 	#define DISPLAY_LINES (DISPLAY_HEIGHT/8)+1
 	#define DISPBUFSIZE 1412
-	#include "debug.h"
 
+	#include "debug.h"
 	#include "intmath.h"
 	#include "logoSprite.h"          
 	#include "funkV16_font.h"
@@ -48,5 +48,13 @@
 	int encodeKeyReturn(KeyReturn cmd, uint8_t id);
 	KeyReturn decodeKeyCommand(int packed);
 	uint8_t decodeKeyID(int packed);
+
+	static const uint I2C_SLAVE_ADDRESS = 0x17;
+	static const uint I2C_BAUDRATE = 100000; // 100 kHz
+	static const uint I2C_SLAVE_SDA_PIN = 12; // 4
+	static const uint I2C_SLAVE_SCL_PIN = 13; // 5
+	static const uint I2C_MASTER_SDA_PIN = 26;
+	static const uint I2C_MASTER_SCL_PIN = 27;
+
 
 #endif

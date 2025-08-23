@@ -6,64 +6,21 @@
 #include "button.h"
 
 void Screen::addWidget(Widget* widg, uint32_t id) {
-  TRACE_CAT(UI,"id:%d",id);
+    TRACE_CAT(UI,"id:%d",id);
 
-  widg->setId(id);
-  if (selectedIndex == -1 && widg->isSelectable()) {
-    selectedIndex = widgets.size();
-    widg->setSelected(true);
-  }else{
-    widg->setSelected(false);
-  }
-
-  widgets.push_back(widg);
-
-  refresh = Rect2(0,0,158,64);
-  TRACE("out");
-}
-/*
-void Screen::rebuildFromDescriptor(ScreenManager& mgr) {
-  widgets.clear();
-  selectedIndex = -1;
-
-  auto& cfgs = mgr.getConfig(screenId);
-  auto& sts  = mgr.getState(screenId);
-
-  for (auto& c : cfgs) {
-    // find matching state by widgetId:
-    auto it = std::find_if(sts.begin(), sts.end(),
-             [&](auto& s){ return s.widgetId == c.widgetId; });
-    WidgetState* state = (it != sts.end() ? &*it : nullptr);
-
-    Widget* w = mgr.createWidgetFromConfigAndState(c, state);
-    if (w) addWidget(w, c.widgetId);
-  }
-}
-
-void Screen::rebuildFromDescriptor(ScreenManager& mgr) {
-    TRACE_CAT(UI, "");
-    widgets.clear();
-    selectedIndex = -1;
-
-    auto& cfgs = mgr.getConfig(screenId);
-    auto& sts  = mgr.getState(screenId);
-
-    for (auto& c : cfgs) {
-        auto it = std::find_if(sts.begin(), sts.end(),
-            [&](auto& s){ return s.widgetId == c.widgetId; });
-
-        WidgetState* state = (it != sts.end()) ? &*it : nullptr;
-
-        TRACE_CAT(UI, "rebuild: widgetId=%u state=%s",
-                  c.widgetId, state ? "found" : "missing");
-
-        Widget* w = mgr.createWidgetFromConfigAndState(c, state);
-        if (w) addWidget(w, c.widgetId);
+    widg->setId(id);
+    if (selectedIndex == -1 && widg->isSelectable()) {
+        selectedIndex = widgets.size();
+        widg->setSelected(true);
+    }else{
+        widg->setSelected(false);
     }
-    TRACE_CAT(UI, "out");
 
+    widgets.push_back(widg);
+
+    refresh = Rect2(0,0,158,64);
+    TRACE("out");
 }
-*/
 
 void Screen::ensureSelection() {
     if (selectedIndex >= 0 && selectedIndex < (int)widgets.size()) return;
@@ -113,26 +70,6 @@ static inline bool needsState(const WidgetConfig& c) {
             return false;
     }
 }
-/*
-void Screen::seedState(ScreenManager& mgr) {
-    auto& cfgs = mgr.getConfig(screenId);
-    auto& sts  = mgr.getState(screenId);
-    sts.clear();
-
-    for (const auto& c : cfgs) {
-        if (!needsState(c)) continue;
-        WidgetState s{};
-        s.widgetId = c.widgetId;
-        switch (c.type) {
-            case WidgetType::Menu:   s.data = c.initialSelection; break;
-            case WidgetType::Edit:   s.data = c.initialValue;     break;
-            case WidgetType::Button: s.data = int(c.toggleOn);    break;
-            default: break;
-        }
-        sts.push_back(std::move(s));
-    }
-}
-*/
 
 void Screen::seedState(ScreenManager& mgr) {
     auto& cfgs = mgr.getConfig(screenId);
@@ -174,39 +111,6 @@ void Screen::seedState(ScreenManager& mgr) {
         sts.end());
 }
 
-/*
-void Screen::commitWidgetValues() {
-    TRACE_CAT(UI,"");
-
-    auto& sts = mgr.getState(screenId);
-    for (auto* w : widgets) {
-
-    uint32_t id = w->getWidgetId();
-    auto  it   = std::find_if(sts.begin(), sts.end(),
-                    [&](auto& s){ return s.widgetId == id; });
-    if (it == sts.end()) continue;
-
-    switch (w->getWidgetType()) {
-        case WidgetType::Menu:
-            TRACE_CAT(UI,"WidgetType::MENU, getType%d",static_cast<Menu*>(w)->getValue());
-            it->data = static_cast<Menu*>(w)->getValue();
-            TRACE_CAT(UI,"WidgetType::Menu, getStates%d",std::get<int>(it->data));            
-            w->setActive(false);
-            break;
-        case WidgetType::Edit:
-            TRACE_CAT(UI,"WidgetType::Edit:%d",static_cast<Edit*>(w)->getValue());
-
-            it->data = static_cast<Edit*>(w)->getValue();
-            break;
-        case WidgetType::Button:
-            TRACE_CAT(UI,"WidgetType::Button");
-            it->data = static_cast<Button*>(w)->getState();
-            break;
-        default: break;
-    }  
-  }
-}
-*/
 void Screen::commitWidgetValues() {
     auto& sts = mgr.getState(screenId);
 

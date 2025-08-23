@@ -61,8 +61,8 @@ Widget* ScreenManager::createWidgetFromConfigAndState(
             }
 
             TRACE_CAT(UI,
-                "Menu ctor: widgetId=%u using selected=%d (st=%p)",
-                c.widgetId, selected, (void*)st);
+                "Menu ctor: widgetId=%u using selected=%d",
+                c.widgetId, selected);
 
             // Build items vector from config
             std::vector<std::string> items;
@@ -88,21 +88,6 @@ Widget* ScreenManager::createWidgetFromConfigAndState(
                 c.minValue, c.maxValue
             );
         }
-        /*
-        case WidgetType::Button: {
-            bool toggState = st
-            ? std::get<int>(st->data)
-            : c.toggleOn;
-
-            return new Button(
-                c.label, 
-                c.captionOn, 
-                c.captionOff,
-                c.x, c.y, c.width, c.height,
-                toggState
-            );
-        }        
-        */
         case WidgetType::Button: {
             bool toggled = c.toggleOn;
             if (st) {
@@ -133,11 +118,10 @@ Widget* ScreenManager::createWidgetFromConfigAndState(
 }
 
 void ScreenManager::setActiveScreen(ScreenEnum id) {
-    TRACE_CAT(UI, "UI trace: widget active");
-
+    TRACE_CAT(UI, "");
     delete activeScreen;
     activeScreen = buildScreenFromDescriptor(id);
-    TRACE_CAT(UI, "out");
+    TRACE_CAT(UI, "End");
 
 }
 

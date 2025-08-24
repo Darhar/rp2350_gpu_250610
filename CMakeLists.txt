@@ -49,38 +49,61 @@ add_subdirectory(lib)
 file(GLOB SCREEN_SRCS
   ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/screens/src/*.cpp
 )
-
+# Paths
+set(LIB_INC  ${CMAKE_SOURCE_DIR}/lib/include)
+set(SCR_INC  ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/screens/include)
+set(DEMO_DIR ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/demos)
 # ---- Demos configuration ----------------------------------------------------
 # Put the base names of your demo .cpp files here (without extension)
 # Each should exist at: examples/rp2040_ui_demo/demos/<name>.cpp
 set(DEMOS
-  #ui_demo
-  screens_demo
+  ui_demo
+  #screens_demo
   #perf_demo
 )
+set(DEMO_DIR ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/demos)  # ensure you have this
 
 # Pick which demo becomes the "default" rp2040_ui_demo target so th Run button works
 # You need to 
-set(SELECTED_DEMO "screens_demo" CACHE STRING "Which demo to expose as rp2040_ui_demo")
+set(SELECTED_DEMO "ui_demo" CACHE STRING "Which demo to expose as rp2040_ui_demo")
 set_property(CACHE SELECTED_DEMO PROPERTY STRINGS ${DEMOS})
 
-# ---- Helper function to define a demo executable ---------------------------
-function(add_ui_demo DEMO_NAME)
-  set(_demo_src ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/demos/${DEMO_NAME}.cpp)
+# Let us flip this from presets or VS Code later:
+option(WAIT_FOR_SERIAL "Block until USB CDC opens" OFF)
 
-  if (NOT EXISTS ${_demo_src})
-    message(FATAL_ERROR "Demo source not found: ${_demo_src}")
+# Helper to convert ON/OFF -> 1/0 at compile time
+set(WAITFORSERIAL_EXPR "$<IF:$<BOOL:${WAIT_FOR_SERIAL}>,1,0>")
+
+function(add_ui_demo DEMO_NAME)
+  # Collect this demo's sources:
+  #  - ui_demo.cpp
+  #  - ui_demo_impl.cpp (and any other ui_demo*.cpp)
+  file(GLOB DEMO_SRCS
+    ${DEMO_DIR}/${DEMO_NAME}.cpp
+    ${DEMO_DIR}/${DEMO_NAME}_*.cpp
+    ${DEMO_DIR}/${DEMO_NAME}*.cpp
+  )
+  if (NOT DEMO_SRCS)
+    message(FATAL_ERROR
+      "No sources for demo '${DEMO_NAME}'. "
+      "Expected at least: ${DEMO_DIR}/${DEMO_NAME}.cpp (and optionally ${DEMO_DIR}/${DEMO_NAME}_*.cpp)")
   endif()
 
   add_executable(${DEMO_NAME}
-    ${_demo_src}
+    ${DEMO_SRCS}
     ${SCREEN_SRCS}
   )
 
+  # Which demo is this (handy for printf at runtime)
+  target_compile_definitions(${DEMO_NAME} PRIVATE
+    RP_DEMO_NAME="${DEMO_NAME}"
+    WAITFORSERIAL=${WAITFORSERIAL_EXPR}
+  )
+
   target_include_directories(${DEMO_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}/lib/include
-    ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/screens/include
-    ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/demos/include
+    ${LIB_INC}
+    ${SCR_INC}
+    ${DEMO_DIR}/include
   )
 
   target_link_libraries(${DEMO_NAME} PUBLIC
@@ -94,32 +117,37 @@ function(add_ui_demo DEMO_NAME)
     pico_multicore
   )
 
+  # Handy at runtime: printf("Running demo: %s\n", RP_DEMO_NAME);
+  target_compile_definitions(${DEMO_NAME} PRIVATE RP_DEMO_NAME="${DEMO_NAME}")
+
   pico_enable_stdio_uart(${DEMO_NAME} 0)
   pico_enable_stdio_usb(${DEMO_NAME} 1)
-
-  # Emit UF2/ELF/bin for this demo
   pico_add_extra_outputs(${DEMO_NAME})
 endfunction()
 
-# ---- Create one target per demo (nice for trying multiple) ------------------
-foreach(D IN LISTS DEMOS)
-  add_ui_demo(${D})
-endforeach()
+# For the canonical VS Code "Run" target, also glob all files for the selected demo:
+file(GLOB SELECTED_DEMO_SRCS ${DEMO_DIR}/${SELECTED_DEMO}*.cpp)
 
-# ---- Create the canonical "rp2040_ui_demo" target for VS Code --------------
-# This is a separate executable that uses the selected demo's .cpp
-message(STATUS "Selected demo for rp2040_ui_demo: ${SELECTED_DEMO}")
 add_executable(${PROJECT_NAME}
-  ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/demos/${SELECTED_DEMO}.cpp
+  ${SELECTED_DEMO_SRCS}
   ${SCREEN_SRCS}
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-  ${CMAKE_SOURCE_DIR}/lib/include
-  ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/screens/include
-  ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/demos/include
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+  RP_DEMO_NAME="${SELECTED_DEMO}"
+  WAITFORSERIAL=${WAITFORSERIAL_EXPR}
 )
 
+# >>> Add include paths so headers resolve
+target_include_directories(${PROJECT_NAME} PRIVATE
+  ${LIB_INC}
+  ${SCR_INC}
+  ${DEMO_DIR}/include
+  # Optional fallback if some headers live directly under screens/ (no include/):
+  ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/screens
+)
+
+# >>> Link Pico + your core lib so pico/stdlib.h & friends resolve
 target_link_libraries(${PROJECT_NAME} PUBLIC
   i2c_ui_lib
   pico_stdlib
@@ -131,6 +159,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   pico_multicore
 )
 
+# >>> Same stdio/outputs as other demos
 pico_enable_stdio_uart(${PROJECT_NAME} 0)
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
 pico_add_extra_outputs(${PROJECT_NAME})

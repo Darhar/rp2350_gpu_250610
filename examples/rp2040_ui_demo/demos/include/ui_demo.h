@@ -1,23 +1,14 @@
 #pragma once
 
-#include "screenManager.hpp"
-#include <testscreen.h>
-#include <menuscreen.h>
-#include <aboutscreen.h>
-#include <settingsscreen.h>
-#include <basicscreen.h>
-#include <splashscreen.h>
+class ScreenManager;  // fwd declare
 
-#define WAITFORSERIAL 1
+// Register this demo’s screens
+void registerAllScreens(ScreenManager& mgr);
 
-void registerAllScreens(ScreenManager& mgr) {
-    // Build a non-static array so lambdas can capture mgr
-    //DEBUG_PRINTLN("Start");
-
-    mgr.registerScreen(ScreenEnum::MENUSCREEN, [&mgr](){ return new MenuScreen(mgr); });
-    mgr.registerScreen(ScreenEnum::TESTSCREEN, [&mgr](){ return new TestScreen(mgr); });
-    mgr.registerScreen(ScreenEnum::SETTINGSSCREEN, [&mgr](){ return new SettingsScreen(mgr); });
-    mgr.registerScreen(ScreenEnum::ABOUTSCREEN, [&mgr](){ return new AboutScreen(mgr); });
-    mgr.registerScreen(ScreenEnum::BASICSCREEN, [&mgr](){ return new BasicScreen(mgr); });
-    mgr.registerScreen(ScreenEnum::SPLASHSCREEN, [&mgr](){ return new SplashScreen(mgr); });
+// Demo-only helpers (temporary master side)
+namespace ui_demo {
+  void bind(ScreenManager& mgr);   // store pointer internally
+  void setup_master();             // config I2C master (dev only)
+  void run_master();               // optional dev traffic
+  void core1_entry();          // <-- add this declaration
 }

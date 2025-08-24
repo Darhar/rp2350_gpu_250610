@@ -1,5 +1,7 @@
 #pragma once
 #include "i2c_obj.hpp"
+#include <cstddef>
+#include <cstdint>
 
 enum i2cCmnds {
     i2c_None,
@@ -12,16 +14,16 @@ enum i2cCmnds {
     i2c_uiGet,
     i2c_uiCng,
 };
+class ScreenManager;
+class i2cObj;
 
-i2cObj* createCommandObject(uint8_t cmdId, uint8_t screenId, uint32_t paramBits,
-                            const uint8_t* data, size_t len, ScreenManager& screenMgr) {                               
-    switch (cmdId) {
-        case i2cCmnds::i2c_scrCng:
-            return new ScreenChange(screenId, paramBits, data, len,screenMgr);
-        case i2cCmnds::i2c_txtCng:
-            return new TextChange(screenId, paramBits, data, len,screenMgr);
-        default:
-            return nullptr;
-    }
-}
+// If you publish command IDs here, keep them as enum/constexpr (OK in headers).
+// enum : uint8_t { i2c_scrCng = 0x01, /* ... */ };
+
+i2cObj* createCommandObject(uint8_t  cmdId,
+                            uint8_t  screenId,
+                            uint32_t paramBits,
+                            const uint8_t* extraData,
+                            std::size_t extraLen,
+                            ScreenManager& mgr);
 

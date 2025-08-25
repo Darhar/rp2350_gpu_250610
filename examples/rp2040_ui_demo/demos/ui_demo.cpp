@@ -1,4 +1,4 @@
-// examples/.../demos/ui_demo.cpp
+
 #include "pico/stdlib.h"
 #include "common.h"
 #include "screenManager.hpp"
@@ -12,7 +12,7 @@
 #include "keyboard.h"
 
 #ifndef WAITFORSERIAL
-#define WAITFORSERIAL 0
+  #define WAITFORSERIAL 0
 #endif
 Debug debug;
 
@@ -30,7 +30,7 @@ int main()
     }
 
     sleep_ms(500);
-    printf("ui_demo\n");
+    printf("Running demo: %s\n", RP_DEMO_NAME);//RP_DEMO_NAME from CMakeLists.txt file
 
     Display* display = new Display();
     debug.setDisplay(display);
@@ -46,11 +46,8 @@ int main()
 
     // NEW: demo-specific bindings & registrations live in ui_demo_impl.cpp
     ui_demo::bind(screenMgr);
-    registerAllScreens(screenMgr);
-    screenMgr.setActiveScreen(ScreenEnum::MENUSCREEN);
-
-    // NEW: shared I2C SLAVE lives in i2c_common (available to all demos)
     i2c_common::bind(screenMgr);
+    i2c_common::setKeyboard(*keyboard);   
     i2c_common::Params p{
         .i2c_index = 0,
         .sda_pin   = I2C_SLAVE_SDA_PIN,
@@ -60,6 +57,8 @@ int main()
     };
     i2c_common::init(p);
 
+    registerAllScreens(screenMgr);
+    screenMgr.setActiveScreen(ScreenEnum::MENUSCREEN);
     // NEW: demo-only I2C MASTER (dev helper)
     ui_demo::setup_master();
 

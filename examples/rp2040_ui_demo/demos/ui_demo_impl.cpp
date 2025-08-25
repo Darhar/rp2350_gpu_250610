@@ -56,7 +56,115 @@ namespace ui_demo {
         bytes[3] = static_cast<uint8_t>((command >> 24) & 0xFF);
     }
 
-    void run_master() {
+
+// Same packed shape used on the slave
+struct __attribute__((packed)) KeyReport {
+    uint8_t  key;        // 0..5
+    uint8_t  stateBits;  // bit0 = DOWN
+    uint8_t  edgeBits;   // bit0 = PRESS, bit1 = RELEASE (latched; cleared on read)
+    uint8_t  analog;     // adc_read()/50 bucket
+    uint32_t eventCount; // increments on edges
+};
+
+void run_master() {
+    if (!s_mgr) return;
+
+    // Build the 4-byte "get keyboard" command
+    uint8_t cmd[4];
+    encodeCommand(i2c_getKb, /*flags=*/0, /*screenId=*/0, /*paramBits=*/0, cmd);
+
+    // Track last printed state
+    static bool       havePrev = false;
+    static KeyReport  prev{};
+
+    // Poll quickly here; core1_entry already throttles outer loop if you want
+    for (int i = 0; i < 100; ++i) {
+        // 1) WRITE: send command and finish with STOP so slave stages reply on FINISH
+        int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, cmd, sizeof(cmd), /*nostop=*/false);
+        if (w != (int)sizeof(cmd)) {
+            // Only print write errors if we never printed one before to avoid spam
+            static bool wroteErr = false;
+            if (!wroteErr) {
+                DEBUG_PRINTLN("i2c write failed: %d", w);
+                wroteErr = true;
+            }
+            sleep_ms(200);
+            continue;
+        }
+
+        // Tiny gap—usually safe without, but harmless
+        sleep_us(1000);
+
+        // 2) READ: fetch the 8-byte KeyReport
+        KeyReport rep{};
+        int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS,
+                                  reinterpret_cast<uint8_t*>(&rep), sizeof(rep),
+                                  /*nostop=*/false);
+        if (r != (int)sizeof(rep)) {
+            static bool readErr = false;
+            if (!readErr) {
+                DEBUG_PRINTLN("i2c read failed: rc=%d", r);
+                readErr = true;
+            }
+            sleep_ms(200);
+            continue;
+        }
+
+        // Decide if we should print:
+        // - Always print first sample
+        // - Print on any edge (PRESS/RELEASE)
+        // - Print if key index changed
+        // - Print if DOWN bit changed
+        // - Optionally print analog changes when no key is down (filter small jitter)
+        bool changed = false;
+
+        if (!havePrev) {
+            changed = true;
+        } else {
+            const bool downNow  = (rep.stateBits & 0x01) != 0;
+            const bool downPrev = (prev.stateBits & 0x01) != 0;
+
+            if (rep.edgeBits != 0)                changed = true;                 // an edge happened
+            else if (rep.key != prev.key)         changed = true;                 // different key bucket
+            else if (downNow != downPrev)         changed = true;                 // up/down flipped
+            else if (!downNow) {
+                // Only when idle: print if analog bucket moved significantly
+                // (1 bucket step can be noise; require >=2 steps)
+                uint8_t d = (rep.analog > prev.analog) ? (rep.analog - prev.analog)
+                                                       : (prev.analog - rep.analog);
+                if (d >= 2) changed = true;
+            }
+        }
+
+        if (changed) {
+            const bool down = (rep.stateBits & 0x01) != 0;
+            // Friendly edge text
+            const bool pressed  = (rep.edgeBits & 0x01) != 0;
+            const bool released = (rep.edgeBits & 0x02) != 0;
+
+            if (pressed || released) {
+                DEBUG_PRINTLN("KB edge: key=%u pressed=%u released=%u analog=%u events=%lu",
+                              rep.key, pressed ? 1 : 0, released ? 1 : 0,
+                              rep.analog, (unsigned long)rep.eventCount);
+            } else if (down) {
+                DEBUG_PRINTLN("KB hold: key=%u analog=%u events=%lu",
+                              rep.key, rep.analog, (unsigned long)rep.eventCount);
+            } else {
+                DEBUG_PRINTLN("KB idle: analog=%u events=%lu",
+                              rep.analog, (unsigned long)rep.eventCount);
+            }
+
+            prev = rep;
+            havePrev = true;
+        }
+
+        sleep_ms(50); // poll period; tweak as needed
+    }
+}
+
+
+
+    void run_master_orig() {
         if (!s_mgr) return;
 
         uint8_t buffer[4];

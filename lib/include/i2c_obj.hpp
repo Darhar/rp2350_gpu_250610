@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cstring>
 #include "screenManager.hpp"
+#include "keyboard.h"
 
 #pragma once
 
@@ -59,4 +60,23 @@ class TextChange : public i2cObj {
             responseSize = size;
             return data;
         }
+};
+
+class GetKeyboardStatus : public i2cObj {
+    public:
+        GetKeyboardStatus(KeyBoard& kb, const uint8_t* src, size_t len) : i2cObj(src, len), kbd(kb) {
+            KeyBoard::KeyReport rep{};
+            kbd.fillReport(rep);
+            static_assert(sizeof(rep) == 8, "KeyReport size changed; update resp buffer");
+            std::memcpy(resp.data(), &rep, sizeof(rep));
+        }
+
+        const uint8_t* getResponse(size_t& responseSize) override {
+            responseSize = resp.size();
+            return resp.data();
+        }
+
+    private:
+        KeyBoard& kbd;
+        std::array<uint8_t, sizeof(KeyBoard::KeyReport)> resp{};
 };

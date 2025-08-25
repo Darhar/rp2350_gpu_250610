@@ -69,7 +69,7 @@ set(SELECTED_DEMO "ui_demo" CACHE STRING "Which demo to expose as rp2040_ui_demo
 set_property(CACHE SELECTED_DEMO PROPERTY STRINGS ${DEMOS})
 
 # Let us flip this from presets or VS Code later:
-option(WAIT_FOR_SERIAL "Block until USB CDC opens" OFF)
+option(WAIT_FOR_SERIAL "Block until USB CDC opens" ON)
 
 # Helper to convert ON/OFF -> 1/0 at compile time
 set(WAITFORSERIAL_EXPR "$<IF:$<BOOL:${WAIT_FOR_SERIAL}>,1,0>")

@@ -41,9 +41,15 @@ class i2cObj;
 // If you publish command IDs here, keep them as enum/constexpr (OK in headers).
 // enum : uint8_t { i2c_scrCng = 0x01, /* ... */ };
 
-i2cObj* createCommandObject(i2cCmnds cmdId, uint8_t screenId, uint32_t paramBits,
-                            const uint8_t* data, size_t len,
-                            ScreenManager& screenMgr, KeyBoard* keyboard);
+i2cObj* createCommandObject(
+    i2cCmnds cmdId, 
+    uint8_t screenId, 
+    uint32_t paramBits,
+    const uint8_t* data, 
+    size_t len,
+    ScreenManager& screenMgr, 
+    KeyBoard* keyboard
+);
 
 
 

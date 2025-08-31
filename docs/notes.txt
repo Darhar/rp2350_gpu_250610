@@ -862,4 +862,7 @@ better setup for demos
 added i2c keyboard command
 ------- 250831 -----
 store values i2c working
+-------250831_1 ----
+start phased implementation of full store values
+
 

@@ -63,7 +63,18 @@ void ValueStore::freeze() {
     }
 
     pending_.clear();
-    frozen_ = true;
+
+    const uint32_t slots  = static_cast<uint32_t>(slots_.size());
+    const uint32_t nbanks = (slots + 31u) >> 5;
+
+bankDirty_.clear();
+bankDirty_.resize(nbanks);
+for (auto& b : bankDirty_) {
+    b.mask.store(0u, std::memory_order_relaxed);  // <-- .mask
+}
+dirtyBanksMask_.store(0ULL, std::memory_order_relaxed);
+
+    frozen_ = true; // keep as plain bool
 }
 
 
@@ -88,25 +99,59 @@ const ValueStore::Slot* ValueStore::find(ValueKey key) const noexcept {
 // Steady-state setters
 // -------------------------------
 bool ValueStore::setBool(ValueKey key, bool v) noexcept {
-    Slot* s = find(key);
-    if (!s || s->type != ValueType::Bool) return false;
-    s->raw.store(to_raw_bool(v), std::memory_order_release);
+    if (!frozen_) return false;
+
+    auto it = index_.find(key);
+    if (it == index_.end()) return false;
+    const uint32_t idx = static_cast<uint32_t>(it->second);
+    Slot& s = slots_[idx];
+    if (s.type != ValueType::Bool) return false;
+
+    const uint32_t new_raw = to_raw_bool(v);
+    const uint32_t old_raw = s.raw.load(std::memory_order_acquire);
+    if (old_raw == new_raw) return true;                 // no change → no dirty
+
+    s.raw.store(new_raw, std::memory_order_release);
+    markDirty(idx);
     return true;
 }
 
 bool ValueStore::setInt(ValueKey key, int v) noexcept {
-    Slot* s = find(key);
-    if (!s || s->type != ValueType::Int) return false;
-    s->raw.store(to_raw_int(v), std::memory_order_release);
+    if (!frozen_) return false;
+
+    auto it = index_.find(key);
+    if (it == index_.end()) return false;
+    const uint32_t idx = static_cast<uint32_t>(it->second);
+    Slot& s = slots_[idx];
+    if (s.type != ValueType::Int) return false;
+
+    const uint32_t new_raw = to_raw_int(v);
+    const uint32_t old_raw = s.raw.load(std::memory_order_acquire);
+    if (old_raw == new_raw) return true;
+
+    s.raw.store(new_raw, std::memory_order_release);
+    markDirty(idx);
     return true;
 }
 
 bool ValueStore::setU32(ValueKey key, uint32_t v) noexcept {
-    Slot* s = find(key);
-    if (!s || s->type != ValueType::U32) return false;
-    s->raw.store(to_raw_u32(v), std::memory_order_release);
+    if (!frozen_) return false;
+
+    auto it = index_.find(key);
+    if (it == index_.end()) return false;
+    const uint32_t idx = static_cast<uint32_t>(it->second);
+    Slot& s = slots_[idx];
+    if (s.type != ValueType::U32) return false;
+
+    const uint32_t new_raw = to_raw_u32(v);
+    const uint32_t old_raw = s.raw.load(std::memory_order_acquire);
+    if (old_raw == new_raw) return true;
+
+    s.raw.store(new_raw, std::memory_order_release);
+    markDirty(idx);
     return true;
 }
+
 
 // -------------------------------
 // Steady-state getters

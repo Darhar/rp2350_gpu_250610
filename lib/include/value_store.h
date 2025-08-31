@@ -69,6 +69,12 @@ class ValueStore {
     public:
         // Singleton (simple, static storage-duration)
         static ValueStore& instance();
+        // True if any slot has been updated since last clear (Phase A1: read-only)
+        bool anyDirty() const noexcept {
+            return dirtyBanksMask_.load(std::memory_order_acquire) != 0ULL;
+        }
+        uint32_t bankWidth() const noexcept { return 32; }
+        uint32_t numBanks()  const noexcept { return static_cast<uint32_t>(bankDirty_.size()); }
 
         // -------- Builder phase (call before freeze) --------
         // Declare a key with its type and default raw value (uint32_t bit pattern).
@@ -105,53 +111,73 @@ class ValueStore {
         inline std::optional<int>      getInt (ValueCat c, uint16_t a, uint16_t b) const noexcept { return getInt (VKey(c,a,b)); }
         inline std::optional<uint32_t> getU32 (ValueCat c, uint16_t a, uint16_t b) const noexcept { return getU32(VKey(c,a,b)); }
 
-    private:
-        // Storage slot — 32-bit atomic raw payload for lock-free access
-        struct Slot {
-            ValueKey              key{};
-            ValueType             type{ValueType::Nil};
-            std::atomic<uint32_t> raw{0};
+private:
+    // Storage slot — 32-bit atomic raw payload for lock-free access
+    struct Slot {
+        ValueKey              key{};
+        ValueType             type{ValueType::Nil};
+        std::atomic<uint32_t> raw{0};
 
-            Slot() = default;
+        Slot() = default;
+        Slot(const Slot&) = delete;
+        Slot& operator=(const Slot&) = delete;
 
-            // Not copyable
-            Slot(const Slot&) = delete;
-            Slot& operator=(const Slot&) = delete;
+        // Move by value-copying the atomic contents
+        Slot(Slot&& other) noexcept
+            : key(other.key), type(other.type) {
+            raw.store(other.raw.load(std::memory_order_relaxed),
+                      std::memory_order_relaxed);
+        }
+        Slot& operator=(Slot&&) = delete;
+    };
 
-            // Movable by value-copying the atomic contents
-            Slot(Slot&& other) noexcept
-                : key(other.key), type(other.type) {
-                raw.store(other.raw.load(std::memory_order_relaxed),
-                        std::memory_order_relaxed);
-            }
+    // Bank mask wrapper so vector can move/resize safely
+    struct BankMask {
+        std::atomic<uint32_t> mask{0};
+        BankMask() = default;
+        BankMask(const BankMask&) = delete;
+        BankMask& operator=(const BankMask&) = delete;
+        BankMask(BankMask&& other) noexcept {
+            mask.store(other.mask.load(std::memory_order_relaxed),
+                       std::memory_order_relaxed);
+        }
+        BankMask& operator=(BankMask&&) = delete;
+    };
 
-            // (Optional) forbid move-assign; vector doesn't need it
-            Slot& operator=(Slot&&) = delete;
-        };
+    // Builder storage: key -> (type, defaultRaw)
+    std::unordered_map<ValueKey, std::pair<ValueType,uint32_t>, ValueKeyHash> pending_;
 
-        ValueStore() = default;
-        ValueStore(const ValueStore&) = delete;
-        ValueStore& operator=(const ValueStore&) = delete;
+    // Frozen storage
+    std::vector<Slot>                                       slots_;
+    std::unordered_map<ValueKey, std::size_t, ValueKeyHash> index_;
+    bool                                                    frozen_ = false;
 
-        // Builder storage: key -> (type, defaultRaw)
-        std::unordered_map<ValueKey, std::pair<ValueType,uint32_t>, ValueKeyHash> pending_;
+    // Phase A1 state
+    std::vector<BankMask>           bankDirty_;            // one u32 mask per 32 slots
+    std::atomic<uint64_t>           dirtyBanksMask_{0};
 
-        // Frozen storage
-        std::vector<Slot>                                           slots_;
-        std::unordered_map<ValueKey, std::size_t, ValueKeyHash>     index_;
-        bool                                                        frozen_ = false;
+    // Lookup (nullptr if not found or not frozen)
+    Slot*       find(ValueKey key) noexcept;
+    const Slot* find(ValueKey key) const noexcept;
 
-        // Lookup (nullptr if not found or not frozen)
-        Slot*       find(ValueKey key) noexcept;
-        const Slot* find(ValueKey key) const noexcept;
+    // Mark a slot as dirty (called only when value actually changes)
+    inline void markDirty(uint32_t slotIdx) noexcept {
+        const uint32_t bank = slotIdx >> 5;   // /32
+        const uint32_t bit  = slotIdx & 31;   // %32
+        if (bank < bankDirty_.size()) {
+            bankDirty_[bank].mask.fetch_or(1u << bit, std::memory_order_release);
+            dirtyBanksMask_.fetch_or(1ULL << bank, std::memory_order_release);
+        }
+    }
 
-        // Bitcasts
-        static inline uint32_t to_raw_bool(bool v)      noexcept { return v ? 1u : 0u; }
-        static inline uint32_t to_raw_int (int v)       noexcept { return static_cast<uint32_t>(static_cast<int32_t>(v)); }
-        static inline uint32_t to_raw_u32 (uint32_t v)  noexcept { return v; }
+    // Bitcasts
+    static inline uint32_t to_raw_bool(bool v)      noexcept { return v ? 1u : 0u; }
+    static inline uint32_t to_raw_int (int v)       noexcept { return static_cast<uint32_t>(static_cast<int32_t>(v)); }
+    static inline uint32_t to_raw_u32 (uint32_t v)  noexcept { return v; }
 
-        static inline bool     from_raw_bool(uint32_t r) noexcept { return (r & 1u) != 0; }
-        static inline int      from_raw_int (uint32_t r) noexcept { return static_cast<int32_t>(r); }
-        static inline uint32_t from_raw_u32 (uint32_t r) noexcept { return r; }
+    static inline bool     from_raw_bool(uint32_t r) noexcept { return (r & 1u) != 0; }
+    static inline int      from_raw_int (uint32_t r) noexcept { return static_cast<int32_t>(r); }
+    static inline uint32_t from_raw_u32 (uint32_t r) noexcept { return r; }
+
 };
 

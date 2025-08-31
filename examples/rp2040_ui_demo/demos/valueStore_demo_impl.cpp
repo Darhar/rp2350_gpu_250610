@@ -95,30 +95,30 @@ namespace vs_demo {
     }
 
 
-static void checkVS() {
-    // Demo pattern
-    static uint32_t kb = 0x00000001;
-    static bool     wifi = false;
-    static int32_t  mode = 0;
+    static void checkVS() {
+        // Demo pattern
+        static uint32_t kb = 0x00000001;
+        static bool     wifi = false;
+        static int32_t  mode = 0;
 
-    // 1) Push three values
-    bool ok_kb   = vs_set_w(static_cast<uint8_t>(ValueCat::Keyboard), 0, 0, WT_U32, kb);
-    bool ok_wifi = vs_set_w(static_cast<uint8_t>(ValueCat::System),   0, 1, WT_Bool, wifi ? 1u : 0u);
-    bool ok_mode = vs_set_w(static_cast<uint8_t>(ValueCat::System),   0, 2, WT_Int,  (uint32_t)mode);
+        // 1) Push three values
+        bool ok_kb   = vs_set_w(static_cast<uint8_t>(ValueCat::Keyboard), 0, 0, WT_U32, kb);
+        bool ok_wifi = vs_set_w(static_cast<uint8_t>(ValueCat::System),   0, 1, WT_Bool, wifi ? 1u : 0u);
+        bool ok_mode = vs_set_w(static_cast<uint8_t>(ValueCat::System),   0, 2, WT_Int,  (uint32_t)mode);
 
-    // 2) Read one back to verify end-to-end
-    uint8_t  t=0; uint32_t v=0; bool okr = vs_get_r(static_cast<uint8_t>(ValueCat::System), 0, 2, t, v);
+        // 2) Read one back to verify end-to-end
+        uint8_t  t=0; uint32_t v=0; bool okr = vs_get_r(static_cast<uint8_t>(ValueCat::System), 0, 2, t, v);
 
-    printf("[CORE1] VS set: kb=0x%08lx wifi=%d mode=%ld  (%c%c%c)  get(mode)=(t=%u v=%ld) %c\n",
-           (unsigned long)kb, wifi?1:0, (long)mode,
-           ok_kb?'K':'k', ok_wifi?'W':'w', ok_mode?'M':'m',
-           (unsigned)t, (long)(int32_t)v, okr?'Y':'N');
+        printf("[CORE1] VS set: kb=0x%08lx wifi=%d mode=%ld  (%c%c%c)  get(mode)=(t=%u v=%ld) %c\n",
+            (unsigned long)kb, wifi?1:0, (long)mode,
+            ok_kb?'K':'k', ok_wifi?'W':'w', ok_mode?'M':'m',
+            (unsigned)t, (long)(int32_t)v, okr?'Y':'N');
 
-    // advance pattern
-    kb <<= 1; if (kb == 0 || kb > 0x00000080) kb = 0x00000001;
-    wifi = !wifi;
-    mode = (mode + 1) % 3;
-}
+        // advance pattern
+        kb <<= 1; if (kb == 0 || kb > 0x00000080) kb = 0x00000001;
+        wifi = !wifi;
+        mode = (mode + 1) % 3;
+    }
 
     void bind(ScreenManager& mgr) { s_mgr = &mgr; }
 
@@ -134,11 +134,6 @@ static void checkVS() {
 
         i2c_init(i2c1, I2C_BAUDRATE);
     }
-
-
-
-
-
 
 // Same packed shape used on the slave
 struct __attribute__((packed)) KeyReport {
@@ -274,12 +269,30 @@ static void checkAck() {
         sleep_ms(500);
     }
 }
+static bool read_ack(uint8_t& out) {
+    uint8_t hdr[4];
+    encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_ack), 0, 0, 0, hdr);
+    if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, hdr, sizeof(hdr), false) != 4) return false;
+    return i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, &out, 1, false) == 1;
+}
+
+static void checkAck_A1_once(const char* tag) {
+    uint8_t st=0;
+    if (read_ack(st)) {
+        printf("%s: ACK: 0x%02X  alive=%u vsFrozen=%u mgr=%u kbd=%u ovf=%u anyDirty=%u\n",
+               tag, st, (st>>0)&1, (st>>1)&1, (st>>2)&1, (st>>3)&1, (st>>4)&1, (st>>5)&1);
+    } else {
+        printf("%s: ACK read failed\n", tag);
+    }
+}
 
 
 void run_master() {
     checkAck();
     for (int i = 0; i < 10; ++i) {   // a handful of cycles per call
+        checkAck_A1_once("Before SET");
         checkVS();
+        checkAck_A1_once("After  SET");
         sleep_ms(500);
     }    
     //checkKeys();

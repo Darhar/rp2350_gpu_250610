@@ -7,6 +7,10 @@
 
 #pragma once
 
+// 5-byte wire shapes (only declare once project-wide)
+struct __attribute__((packed)) VsAddr  { uint8_t cat; uint16_t a; uint16_t b; };
+struct __attribute__((packed)) VsValue { uint8_t type; uint32_t v; };
+
 class i2cObj {
     public:
         static constexpr size_t MAX_DATA = 32;
@@ -84,47 +88,40 @@ class GetKeyboardStatus : public i2cObj {
 };
 
 class GetAckStatus : public i2cObj {
-public:
-    GetAckStatus(ScreenManager* mgr, KeyBoard* kbd,
-                 const uint8_t* data, size_t len)
-    : i2cObj(data, len)   // <-- call the required base ctor
-    {
-        uint8_t s = 0;
-        s |= 1u << 0; // alive
-        if (mgr) s |= 1u << 2;
-        if (kbd) s |= 1u << 3;
-        if (ValueStore::instance().frozen()) s |= 1u << 1;
-        status_ = s;
-    }
+    public:
+        GetAckStatus(ScreenManager* mgr, KeyBoard* kbd, const uint8_t* data, size_t len)
+        : i2cObj(data, len)   // <-- call the required base ctor
+        {
+            uint8_t s = 0;
+            s |= 1u << 0; // alive
+            if (ValueStore::instance().frozen()) s |= 1u << 1;
+            if (mgr) s |= 1u << 2;
+            if (kbd) s |= 1u << 3;
+            if (ValueStore::instance().anyDirty()) s |= 1u << 5;  // NEW: any-dirty            
+            status_ = s;
+        }
 
-    const uint8_t* getResponse(size_t& outLen) override {
-        outLen = 1;
-        return &status_;
-    }
-private:
-    uint8_t status_{0};
+        const uint8_t* getResponse(size_t& outLen) override {
+            outLen = 1;
+            return &status_;
+        }
+    private:
+        uint8_t status_{0};
 };
 
-// 5-byte wire shapes (only declare once project-wide)
-struct __attribute__((packed)) VsAddr  { uint8_t cat; uint16_t a; uint16_t b; };
-struct __attribute__((packed)) VsValue { uint8_t type; uint32_t v; };
-
 class VsSetValue : public i2cObj {
-public:
-
-    //inline VsSetValue(const uint8_t* data, size_t len) : i2cObj(data, len) { /* minimal body */ }
-
-    VsSetValue(const uint8_t* data, size_t len);   // <-- EXACT signature
-    const uint8_t* getResponse(size_t& outLen) override { outLen = 0; return nullptr; }
+    public:
+        VsSetValue(const uint8_t* data, size_t len);   // <-- EXACT signature
+        const uint8_t* getResponse(size_t& outLen) override { outLen = 0; return nullptr; }
 };
 
 class VsGetValue : public i2cObj {
-public:
-    VsGetValue(const uint8_t* data, size_t len);   // <-- EXACT signature
-    const uint8_t* getResponse(size_t& outLen) override {
-        outLen = rlen_; return rlen_ ? resp_ : nullptr;
-    }
-private:
-    uint8_t resp_[5]{};
-    size_t  rlen_ = 0;
+    public:
+        VsGetValue(const uint8_t* data, size_t len);   // <-- EXACT signature
+        const uint8_t* getResponse(size_t& outLen) override {
+            outLen = rlen_; return rlen_ ? resp_ : nullptr;
+        }
+    private:
+        uint8_t resp_[5]{};
+        size_t  rlen_ = 0;
 };

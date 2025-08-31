@@ -285,14 +285,35 @@ static void checkAck_A1_once(const char* tag) {
         printf("%s: ACK read failed\n", tag);
     }
 }
+static bool dirty_summary(uint8_t (&out)[8]) {
+    uint8_t hdr[4];
+    encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_dirty_summary), 0, 0, 0, hdr);
+    if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, hdr, sizeof(hdr), false) != 4) return false;
+    return i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, out, 8, false) == 8;
+}
 
+static void checkDirtySummary() {
+    uint8_t s[8]{};
+    if (!dirty_summary(s)) { printf("dirty_summary: read failed\n"); return; }
+    const uint8_t flags = s[0];
+    const uint8_t bw    = s[1];
+    const uint8_t nb    = s[2];
+    const uint8_t fdb   = s[3];
+    const uint32_t seq  = (uint32_t)s[4] | ((uint32_t)s[5] << 8) | ((uint32_t)s[6] << 16) | ((uint32_t)s[7] << 24);
+
+    printf("DIRSUM: flags=0x%02X anyDirty=%u bw=%u nb=%u firstDirtyBank=%u seq=%lu\n",
+           flags, (flags>>5)&1, bw, nb, (unsigned)fdb, (unsigned long)seq);
+}
 
 void run_master() {
     checkAck();
     for (int i = 0; i < 10; ++i) {   // a handful of cycles per call
-        checkAck_A1_once("Before SET");
+        checkDirtySummary();
+        //checkAck_A1_once("Before SET");
         checkVS();
-        checkAck_A1_once("After  SET");
+        checkDirtySummary();
+        //checkAck_A1_once("After  SET");
+
         sleep_ms(500);
     }    
     //checkKeys();

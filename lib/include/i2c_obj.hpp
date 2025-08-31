@@ -125,3 +125,11 @@ class VsGetValue : public i2cObj {
         uint8_t resp_[5]{};
         size_t  rlen_ = 0;
 };
+
+class DirtySummary : public i2cObj {
+public:
+    DirtySummary(ScreenManager* mgr, KeyBoard* kbd, const uint8_t* data, size_t len);
+    const uint8_t* getResponse(size_t& outLen) override { outLen = 8; return resp_; }
+private:
+    uint8_t resp_[8]{};
+};

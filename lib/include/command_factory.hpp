@@ -23,6 +23,7 @@ enum class i2cCmnds : uint8_t {
     i2c_vs_set = 0x04,  // value store
     i2c_vs_get = 0x05,  
     i2c_ack    = 0x06,
+    i2c_dirty_summary = 0x07,    
 /*
     i2c_imgLod,
     i2c_imgMov,
@@ -34,6 +35,7 @@ enum class i2cCmnds : uint8_t {
 
 };
 static_assert(static_cast<uint8_t>(i2cCmnds::i2c_vs_get) < 32, "cmdId must fit 5 bits");
+static_assert(static_cast<uint8_t>(i2cCmnds::i2c_dirty_summary) < 32, "cmdId fits 5 bits");
 
 class ScreenManager;
 class i2cObj;

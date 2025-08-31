@@ -111,6 +111,9 @@ class ValueStore {
         inline std::optional<int>      getInt (ValueCat c, uint16_t a, uint16_t b) const noexcept { return getInt (VKey(c,a,b)); }
         inline std::optional<uint32_t> getU32 (ValueCat c, uint16_t a, uint16_t b) const noexcept { return getU32(VKey(c,a,b)); }
 
+        std::optional<uint32_t> firstDirtyBank() const noexcept;
+        uint32_t seq() const noexcept { return seq_.load(std::memory_order_acquire); }        
+
 private:
     // Storage slot — 32-bit atomic raw payload for lock-free access
     struct Slot {
@@ -130,7 +133,7 @@ private:
         }
         Slot& operator=(Slot&&) = delete;
     };
-
+    std::atomic<uint32_t> seq_{0}; // increments on each successful value change
     // Bank mask wrapper so vector can move/resize safely
     struct BankMask {
         std::atomic<uint32_t> mask{0};

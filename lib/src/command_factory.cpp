@@ -21,6 +21,7 @@ i2cObj* createCommandObject(
         case i2cCmnds::i2c_ack:    return new GetAckStatus(&screenMgr, keyboard, data, len); 
         case i2cCmnds::i2c_vs_set: return new VsSetValue(data, len);
         case i2cCmnds::i2c_vs_get: return new VsGetValue(data, len);
+        case i2cCmnds::i2c_dirty_summary: return new DirtySummary(&screenMgr, keyboard, data, len);
 
         default: return nullptr;
     }

@@ -113,6 +113,7 @@ bool ValueStore::setBool(ValueKey key, bool v) noexcept {
 
     s.raw.store(new_raw, std::memory_order_release);
     markDirty(idx);
+    seq_.fetch_add(1, std::memory_order_acq_rel);
     return true;
 }
 
@@ -131,6 +132,7 @@ bool ValueStore::setInt(ValueKey key, int v) noexcept {
 
     s.raw.store(new_raw, std::memory_order_release);
     markDirty(idx);
+    seq_.fetch_add(1, std::memory_order_acq_rel);
     return true;
 }
 
@@ -149,6 +151,7 @@ bool ValueStore::setU32(ValueKey key, uint32_t v) noexcept {
 
     s.raw.store(new_raw, std::memory_order_release);
     markDirty(idx);
+    seq_.fetch_add(1, std::memory_order_acq_rel);
     return true;
 }
 
@@ -174,3 +177,13 @@ std::optional<uint32_t> ValueStore::getU32(ValueKey key) const noexcept {
     return from_raw_u32(s->raw.load(std::memory_order_acquire));
 }
 
+std::optional<uint32_t> ValueStore::firstDirtyBank() const noexcept {
+    const uint64_t m = dirtyBanksMask_.load(std::memory_order_acquire);
+    if (!m) return std::nullopt;
+#if defined(__GNUC__) || defined(__clang__)
+    return static_cast<uint32_t>(__builtin_ctzll(m));
+#else
+    for (uint32_t i = 0; i < 64; ++i) if (m & (1ull << i)) return i;
+    return std::nullopt;
+#endif
+}

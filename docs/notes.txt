@@ -860,4 +860,6 @@ better setup for demos
 
 ------- 250823 -----
 added i2c keyboard command
+------- 250831 -----
+store values i2c working
 

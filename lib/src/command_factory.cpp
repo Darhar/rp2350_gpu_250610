@@ -1,42 +1,21 @@
 #include "command_factory.hpp"
 #include "screenManager.hpp"
 #include "i2c_obj.hpp"
-
-/*
-i2cObj* createCommandObject(uint8_t cmdId, uint8_t screenId, uint32_t paramBits,
-                            const uint8_t* data, size_t len, ScreenManager& screenMgr) {  
-
-    switch (cmdId) {
-        case i2cCmnds::i2c_scrCng:
-            return new ScreenChange(screenId, paramBits, data, len,screenMgr);
-        case i2cCmnds::i2c_txtCng:
-            return new TextChange(screenId, paramBits, data, len,screenMgr);
-        default:
-            return nullptr;
-    }
-}
-*/
-
-
 #include "keyboard.h"
+#include "value_store.h"
 
-i2cObj* createCommandObject(uint8_t cmdId, uint8_t screenId, uint32_t paramBits,
+i2cObj* createCommandObject(i2cCmnds cmdId, uint8_t screenId, uint32_t paramBits,
                             const uint8_t* data, size_t len,
-                            ScreenManager& screenMgr,
-                            KeyBoard& keyboard)   // <— added
+                            ScreenManager& screenMgr, KeyBoard* keyboard)  // ← pointer!
 {
     switch (cmdId) {
-        case i2cCmnds::i2c_scrCng:
-            return new ScreenChange(screenId, paramBits, data, len, screenMgr);
+        case i2cCmnds::i2c_scrCng: return new ScreenChange(screenId, paramBits, data, len, screenMgr);
+        case i2cCmnds::i2c_txtCng: return new TextChange  (screenId, paramBits, data, len, screenMgr);
+        case i2cCmnds::i2c_getKb:  return keyboard ? new GetKeyboardStatus(*keyboard, data, len) : nullptr;
+        case i2cCmnds::i2c_ack:    return new GetAckStatus(&screenMgr, keyboard, data, len); // <— NEW
+        case i2cCmnds::i2c_vs_set: return new VsSetValue(data, len);
+        case i2cCmnds::i2c_vs_get: return new VsGetValue(data, len);
 
-        case i2cCmnds::i2c_txtCng:
-            return new TextChange(screenId, paramBits, data, len, screenMgr);
-
-        case i2cCmnds::i2c_getKb: {            // <— NEW
-            return new GetKeyboardStatus(keyboard, data, len);
-        }
-
-        default:
-            return nullptr;
+        default: return nullptr;
     }
 }

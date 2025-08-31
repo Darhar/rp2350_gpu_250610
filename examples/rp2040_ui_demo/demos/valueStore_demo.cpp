@@ -3,18 +3,27 @@
 #include "common.h"
 #include "screenManager.hpp"
 #include "i2c_common.h"
-#include "ui_demo.h"
+#include "valueStore_demo.h"
 #include "common.h"
 #include "display.h"
 
 #include "pico/multicore.h"
 #include "debug.h"
 #include "keyboard.h"
+#include "value_store.h"  // add this include
 
 #ifndef WAITFORSERIAL
   #define WAITFORSERIAL 0
 #endif
 Debug debug;
+
+static void build_and_freeze_values() {
+    auto& vs = ValueStore::instance();
+    vs.declareU32(VKey(ValueCat::Keyboard, 0, 0), 0);   // kb mask
+    vs.declareBool(VKey(ValueCat::System,   0, 1), false); // wifi
+    vs.declareInt (VKey(ValueCat::System,   0, 2), 0);     // mode
+    vs.freeze();
+}
 
 int main() 
 {
@@ -33,8 +42,6 @@ int main()
     printf("Running demo: %s\n", RP_DEMO_NAME);//RP_DEMO_NAME from CMakeLists.txt file
 
     Display* display = new Display();
-    debug.setDisplay(display);
-    debug.registerVar("fb", display->getFrameBufferPtr(), DISPLAY_WIDTH*DISPLAY_HEIGHT);
 
     display->clear(0);
     debug.printHelp();
@@ -45,7 +52,7 @@ int main()
     ScreenManager screenMgr;
 
     // NEW: demo-specific bindings & registrations live in ui_demo_impl.cpp
-    ui_demo::bind(screenMgr);
+    vs_demo::bind(screenMgr);
     i2c_common::bind(screenMgr);
     i2c_common::setKeyboard(*keyboard);   
     i2c_common::Params p{
@@ -56,14 +63,15 @@ int main()
         .slave_addr= I2C_SLAVE_ADDRESS
     };
     i2c_common::init(p);
+    build_and_freeze_values();   // <-- add this line (before launching Core1)
 
     registerAllScreens(screenMgr);
     screenMgr.setActiveScreen(ScreenEnum::MENUSCREEN);
     // NEW: demo-only I2C MASTER (dev helper)
-    ui_demo::setup_master();
+    vs_demo::setup_master();
 
     // CHANGED: launch core1 entry provided by the demo implementation
-    multicore_launch_core1(ui_demo::core1_entry);
+    multicore_launch_core1(vs_demo::core1_entry);
 
     uint32_t g = multicore_fifo_pop_blocking(); 
     sleep_ms(1000);

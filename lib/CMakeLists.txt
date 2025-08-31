@@ -15,7 +15,9 @@ add_library(i2c_ui_lib
   src/debug.cpp
   src/screen.cpp
   src/i2c_common.cpp
+  src/i2c_obj.cpp
   src/command_factory.cpp
+  src/value_store.cpp
 )
 
 target_include_directories(i2c_ui_lib

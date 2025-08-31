@@ -1,187 +1,4 @@
 
--------------- Reusable UI Screen Manager suggested by chatgpt ---------------
-#include <cstdio>
-#include <cstdint>
-
-// Type alias for callback function signature
-typedef void (*ScreenCallback)(void* context, int8_t screenId, uint8_t key);
-
-// ===== Abstract Screen Interface =====
-class Screen {
-protected:
-    ScreenCallback callback;
-    void* context;
-
-public:
-    Screen(ScreenCallback cb, void* ctx) : callback(cb), context(ctx) {}
-    virtual ~Screen() {}
-
-    virtual void draw() = 0;
-    virtual void keyPressed(uint8_t key) = 0;
-};
-
-// ===== Example Screen: SettingsScreen =====
-class SettingsScreen : public Screen {
-private:
-    uint8_t option;
-
-public:
-    SettingsScreen(ScreenCallback cb, void* ctx, uint8_t opt)
-        : Screen(cb, ctx), option(opt) {}
-
-    void draw() override {
-        printf("[SettingsScreen] Drawing option %d\n", option);
-    }
-
-    void keyPressed(uint8_t key) override {
-        printf("[SettingsScreen] Key pressed: %d\n", key);
-        if (callback) {
-            callback(context, 1, key);  // screen ID = 1
-        }
-    }
-};
-
-// ===== ScreenManager to Switch and Forward =====
-class ScreenManager {
-private:
-    Screen* currentScreen = nullptr;
-
-public:
-    void setScreen(Screen* screen) {
-        if (currentScreen) {
-            delete currentScreen;
-        }
-        currentScreen = screen;
-        currentScreen->draw();
-    }
-
-    void sendKey(uint8_t key) {
-        if (currentScreen) {
-            currentScreen->keyPressed(key);
-        }
-    }
-
-    ~ScreenManager() {
-        if (currentScreen) delete currentScreen;
-    }
-};
-
-// ===== Sample App Context and Callback =====
-struct AppContext {
-    const char* appName;
-    ScreenManager* screenMgr;
-};
-
-void backHandler(void* ctx, int8_t screenId, uint8_t key) {
-    AppContext* appCtx = static_cast<AppContext*>(ctx);
-    printf("Callback from screen %d, key %d (app: %s)\n", screenId, key, appCtx->appName);
-
-    // Example: go back to another screen or quit
-    if (key == 0) {
-        printf("[App] Returning to main screen\n");
-        // You could switch to another screen here
-    }
-}
-
-// ===== Main =====
-int main() {
-    ScreenManager manager;
-
-    AppContext context = {
-        .appName = "MyApp",
-        .screenMgr = &manager
-    };
-
-    // Load a screen
-    manager.setScreen(new SettingsScreen(backHandler, &context, 2));
-
-    // Simulate a key press
-    manager.sendKey(0);
-    manager.sendKey(1);
-
-    return 0;
-}
-
----------second screen and dynamic switching ------------
-#include <cstdio>
-#include <cstdint>
-
-// Type alias for callback
-typedef void (*ScreenCallback)(void* context, int8_t screenId, uint8_t key);
-
-// === Base Screen Interface ===
-class Screen {
-protected:
-    ScreenCallback callback;
-    void* context;
-
-public:
-    Screen(ScreenCallback cb, void* ctx) : callback(cb), context(ctx) {}
-    virtual ~Screen() {}
-
-    virtual void draw() = 0;
-    virtual void keyPressed(uint8_t key) = 0;
-};
-
-// === ScreenManager ===
-class ScreenManager {
-private:
-    Screen* currentScreen = nullptr;
-
-public:
-    void setScreen(Screen* screen) {
-        if (currentScreen) {
-            delete currentScreen;
-        }
-        currentScreen = screen;
-        currentScreen->draw();
-    }
-
-    void sendKey(uint8_t key) {
-        if (currentScreen) {
-            currentScreen->keyPressed(key);
-        }
-    }
-
-    ~ScreenManager() {
-        if (currentScreen) delete currentScreen;
-    }
-};
-
-// === Application Context ===
-struct AppContext {
-    const char* appName;
-    ScreenManager* screenMgr;
-};
-
-// === HomeScreen ===
-class HomeScreen : public Screen {
-public:
-    HomeScreen(ScreenCallback cb, void* ctx) : Screen(cb, ctx) {}
-
-    void draw() override {
-        printf("[HomeScreen] Welcome! Press 1 for Settings\n");
-    }
-
-    void keyPressed(uint8_t key) override {
-        if (callback) {
-            callback(context, 0, key); // screen ID = 0
-        }
-    }
-};
-
-// === SettingsScreen ===
-class SettingsScreen : public Screen {
-private:
-    uint8_t option;
-
-public:
-    SettingsScreen(ScreenCallback cb, void* ctx, uint8_t opt)
-        : Screen(cb, ctx), option(opt) {}
-
-    void draw() override {
-        printf("[SettingsScreen] Settings Option: %d
-
 =========== Add a amenu ==============
 
 #include <cstdint>
@@ -442,6 +259,14 @@ Read functions (requests)
  cmnd + data    cmnd + data -> 
  cmnd req 
  -------------------------------
+
+
+------ 250612 -----
+rearranged file system working
+
+------ 250616 -----
+started screen discriptor
+
 
 using ScreenFactoryFunc = Screen* (*)(void (*)(int8_t, uint8_t), uint8_t);
 
@@ -856,6 +681,8 @@ freshly new-allocated instance of the concrete Screen subclass (e.g. new TestScr
 
 //----250621---- screen descriptors working
 //----250629 --- persistent values working
+------250630 --------
+Label, Button and Edit widgets working correctly
 //----250701 --- label, button and edit widget working correctly
 
 ----- todo soon
@@ -965,6 +792,8 @@ This avoids the global altogether. Only do this if menuB is only used inside Set
 [screen]                constructor done
 [SM]        return screen    
 
+------250705--------
+added debug
 ------250713--------
 menu widget working
 should look in to all widget having a value field
@@ -982,6 +811,12 @@ and a text buffer
 A console widget will have a buffer of a definesd size
 There will be a specific edit widget to handle fractions
 Text input needs a special widget, on screen there is room for 5 rows and 22 clumns of letters in boxes
+
+------ 250727 -------
+Added a trace system and spreadsheet parser
+
+------ 250808 ---------
+seed config and state working
 
 -----------fixing circular includes------------
 Here’s a concise recap of what we did to swap out the old include‐guard for #pragma once and smooth over the resulting include‐order issues:
@@ -1017,4 +852,12 @@ Forward‐declaring them before the using ScreenFactoryFunc and map declarations
 
 Pulled in <map> so std::map<ScreenEnum,…> is known.
 
-C
+------ 250823 -----
+reorganise demos
+
+------ 250824 -----
+better setup for demos
+
+------- 250823 -----
+added i2c keyboard command
+

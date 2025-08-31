@@ -57,7 +57,8 @@ set(DEMO_DIR ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/demos)
 # Put the base names of your demo .cpp files here (without extension)
 # Each should exist at: examples/rp2040_ui_demo/demos/<name>.cpp
 set(DEMOS
-  ui_demo
+  valueStore_demo
+  #ui_demo
   #screens_demo
   #perf_demo
 )
@@ -65,7 +66,7 @@ set(DEMO_DIR ${CMAKE_SOURCE_DIR}/examples/rp2040_ui_demo/demos)  # ensure you ha
 
 # Pick which demo becomes the "default" rp2040_ui_demo target so th Run button works
 # You need to 
-set(SELECTED_DEMO "ui_demo" CACHE STRING "Which demo to expose as rp2040_ui_demo")
+set(SELECTED_DEMO "valueStore_demo" CACHE STRING "Which demo to expose as rp2040_ui_demo")
 set_property(CACHE SELECTED_DEMO PROPERTY STRINGS ${DEMOS})
 
 # Let us flip this from presets or VS Code later:
@@ -157,6 +158,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   hardware_adc
   hardware_i2c
   pico_multicore
+  pico_sync
 )
 
 # >>> Same stdio/outputs as other demos

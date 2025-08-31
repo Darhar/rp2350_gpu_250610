@@ -40,6 +40,7 @@ void ScreenManager::registerFactory(ScreenEnum id, ScreenFactoryFunc func) {
 Widget* ScreenManager::createWidgetFromConfigAndState(
     const WidgetConfig& c, WidgetState* st)
 {
+    TRACE_CAT(UI,"");    
     switch (c.type) {
         case WidgetType::Menu: {
             // Default to config’s initialSelection

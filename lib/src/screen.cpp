@@ -72,6 +72,8 @@ static inline bool needsState(const WidgetConfig& c) {
 }
 
 void Screen::seedState(ScreenManager& mgr) {
+    TRACE_CAT(UI, "");
+
     auto& cfgs = mgr.getConfig(screenId);
     auto& sts  = mgr.getState(screenId);
 

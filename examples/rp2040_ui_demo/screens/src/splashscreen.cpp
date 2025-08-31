@@ -10,7 +10,7 @@ SplashScreen::SplashScreen(ScreenManager& mgr)  : Screen(mgr, ScreenEnum::SPLASH
     title1 = "Arial5x8 Font";
     title2 = "Terminal 6x9 Font";
     ball00=new Sprite(logoSprite,Vec2(10,10),Vec2(1,1));
-    duration=0; 
+    //duration=0; 
     refresh=Rect2(0,0,158,64);    
     funkyV16->setClearSpace(true);
 }
@@ -21,7 +21,7 @@ SplashScreen::~SplashScreen() {
 
 void SplashScreen::update(uint16_t deltaTimeMS) {
 
-    duration += deltaTimeMS;
+    //duration += deltaTimeMS;
     accDeltaTimeMS += deltaTimeMS;
   
     if(accDeltaTimeMS>100){

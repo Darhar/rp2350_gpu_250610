@@ -6,6 +6,7 @@
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include <pico/i2c_slave.h>
+#include "debug.h"
 
 namespace i2c_common {
 
@@ -49,6 +50,7 @@ namespace i2c_common {
 
     static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         switch (event) {
+
             case I2C_SLAVE_RECEIVE:
                 if (s_idx < MAX_BUFFER) {
                     s_buf[s_idx++] = i2c_read_byte_raw(i2c);
@@ -73,7 +75,12 @@ namespace i2c_common {
                         |((uint32_t)s_buf[2] << 16)
                         |((uint32_t)s_buf[3] << 24);
 
-                    uint8_t  cmdId      =  cmdWord        & 0x1F;
+                    //uint8_t  cmdId      =  cmdWord        & 0x1F;
+                    // decode header...
+                    uint8_t cmdIdRaw =  cmdWord        & 0x1F;
+                    // Cast once to your scoped enum
+                    i2cCmnds cmdId   = static_cast<i2cCmnds>(cmdIdRaw);
+
                     uint8_t  flags      = (cmdWord >> 5)  & 0x07;
                     uint8_t  screenId   = (cmdWord >> 8)  & 0x3F;
                     uint32_t paramBits  = (cmdWord >> 14) & 0x3FFFF;
@@ -89,11 +96,18 @@ namespace i2c_common {
 
                     const uint8_t* extraData = (s_idx > 4) ? &s_buf[4] : nullptr;
                     size_t         extraLen  = (s_idx > 4) ? (s_idx - 4) : 0;
+//DEBUG_PRINTLN("I2C FINISH: bytes=%u cmdIdRaw=%u extraLen=%u",(unsigned)s_idx, (unsigned)cmdIdRaw, (unsigned)extraLen);                
 
+                    // pass enum to factory
                     i2cObj* obj = createCommandObject(
-                        cmdId, screenId, paramBits, extraData, extraLen, *g_mgr,
-                        (g_kbd ? *g_kbd : *(KeyBoard*)nullptr)  // will crash if null; better: guard below
-                    );
+                        cmdId, screenId, paramBits, extraData, extraLen, *g_mgr, g_kbd); 
+
+                    /*
+                        i2cObj* obj = createCommandObject(
+                            cmdId, screenId, paramBits, extraData, extraLen, *g_mgr,
+                            (g_kbd ? *g_kbd : *(KeyBoard*)nullptr)  // will crash if null; better: guard below
+                        );
+                    */
 
                     // Stage response bytes for subsequent REQUEST events
                     s_tx_len = 0;
@@ -118,3 +132,6 @@ namespace i2c_common {
     }//i2c_slave_handler
 
 } // namespace i2c_common
+
+
+  

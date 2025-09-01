@@ -127,9 +127,17 @@ class VsGetValue : public i2cObj {
 };
 
 class DirtySummary : public i2cObj {
-public:
-    DirtySummary(ScreenManager* mgr, KeyBoard* kbd, const uint8_t* data, size_t len);
-    const uint8_t* getResponse(size_t& outLen) override { outLen = 8; return resp_; }
-private:
-    uint8_t resp_[8]{};
+    public:
+        DirtySummary(ScreenManager* mgr, KeyBoard* kbd, const uint8_t* data, size_t len);
+        const uint8_t* getResponse(size_t& outLen) override { outLen = 8; return resp_; }
+    private:
+        uint8_t resp_[8]{};
+};
+
+class DirtyBank : public i2cObj {
+    public:
+        DirtyBank(const uint8_t* data, size_t len);
+        const uint8_t* getResponse(size_t& outLen) override { outLen = 4; return resp_; }
+    private:
+        uint8_t resp_[4]{};
 };

@@ -304,9 +304,100 @@ static void checkDirtySummary() {
     printf("DIRSUM: flags=0x%02X anyDirty=%u bw=%u nb=%u firstDirtyBank=%u seq=%lu\n",
            flags, (flags>>5)&1, bw, nb, (unsigned)fdb, (unsigned long)seq);
 }
+/*
+static bool dirty_bank_req(uint8_t bank, uint8_t options, uint32_t& outMask) {
+    uint8_t hdr[4];
+    encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_dirty_bank), 0, 0, 0, hdr);
+
+    uint8_t frame[4 + 2] = { hdr[0], hdr[1], hdr[2], hdr[3], bank, options };
+    int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), false);
+    if (w != (int)sizeof(frame)) return false;
+
+    uint8_t resp[4]{};
+    int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, resp, sizeof(resp),false);
+    if (r != 4) return false;
+
+    outMask = (uint32_t)resp[0] | ((uint32_t)resp[1] << 8) |
+              ((uint32_t)resp[2] << 16) | ((uint32_t)resp[3] << 24);
+    return true;
+}
+*/
+static bool dirty_bank_req(uint8_t bank, uint8_t options, uint32_t& outMask) {
+    uint8_t hdr[4];
+    encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_dirty_bank), 0, 0, 0, hdr);
+
+    uint8_t frame[6] = { hdr[0], hdr[1], hdr[2], hdr[3], bank, options };
+    int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), false);
+    if (w != (int)sizeof(frame)) return false;
+
+    uint8_t resp[4]{};
+    int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, resp, sizeof(resp), false);
+    if (r != 4) return false;
+
+    outMask = (uint32_t)resp[0] | ((uint32_t)resp[1] << 8) |
+              ((uint32_t)resp[2] << 16) | ((uint32_t)resp[3] << 24);
+    return true;
+}
+
+static void test_dirty_bank_once() {
+    // 1) Summary (see which bank to hit)
+    uint8_t sum[8]{};
+    if (!dirty_summary(sum)) { printf("DIRSUM read failed\n"); return; }
+    const uint8_t fdb = sum[3];
+    const uint8_t anyDirty = (sum[0] >> 5) & 1;
+    printf("DIRSUM: anyDirty=%u firstDirtyBank=%u seq=%lu\n",
+           anyDirty, (unsigned)fdb,
+           (unsigned long)((uint32_t)sum[4] | ((uint32_t)sum[5] << 8) | ((uint32_t)sum[6] << 16) | ((uint32_t)sum[7] << 24)));
+
+    if (fdb == 0xFF) return;
+
+    // 2) Fetch & CLEAR that bank
+    uint32_t mask = 0;
+    if (dirty_bank_req(fdb, /*CLEAR*/1, mask)) {
+        printf("DIRBANK: bank=%u mask=0x%08lx (cleared)\n", (unsigned)fdb, (unsigned long)mask);
+    } else {
+        printf("DIRBANK: request failed\n");
+    }
+
+    // 3) ACK should go low if no new writes arrived
+    uint8_t st=0;
+    if (read_ack(st)) {
+        printf("ACK: 0x%02X anyDirty=%u\n", st, (st>>5)&1);
+    }
+}
 
 void run_master() {
-    checkAck();
+    // 1) Do one write so something is dirty (e.g., System,0,2 = 42)
+    uint8_t st_dummy;
+    vs_set_w((uint8_t)ValueCat::System, 0, 2, /*WT_Int=*/2, 42);
+
+    // 2) Ask for summary
+    uint8_t sum[8]{};
+    dirty_summary(sum);
+    uint8_t fdb = sum[3];
+    printf("DIRSUM: anyDirty=%u firstDirtyBank=%u seq=%lu\n",
+        (sum[0]>>5)&1, (unsigned)fdb,
+        (unsigned long)((uint32_t)sum[4] | ((uint32_t)sum[5]<<8) |
+                        ((uint32_t)sum[6]<<16) | ((uint32_t)sum[7]<<24)));
+
+    // 3) Fetch & CLEAR that bank
+    if (fdb != 0xFF) {
+        uint32_t mask=0;
+        if (dirty_bank_req(fdb, /*CLEAR*/1, mask)) {
+            printf("DIRBANK: bank=%u mask=0x%08lx (cleared)\n", (unsigned)fdb, (unsigned long)mask);
+        }
+    }
+
+    // 4) ACK should now have anyDirty=0 (if no new writes arrived)
+    uint8_t ack=0;
+    read_ack(ack);
+    printf("ACK: 0x%02X anyDirty=%u\n", ack, (ack>>5)&1);
+   
+    /*checkAck();
+    for (int i = 0; i < 5; ++i) {   // a handful of cycles per call
+         test_dirty_bank_once();
+        sleep_ms(200);
+    }
     for (int i = 0; i < 10; ++i) {   // a handful of cycles per call
         checkDirtySummary();
         //checkAck_A1_once("Before SET");
@@ -314,9 +405,9 @@ void run_master() {
         checkDirtySummary();
         //checkAck_A1_once("After  SET");
 
-        sleep_ms(500);
+        sleep_ms(400);
     }    
-    //checkKeys();
+    */checkKeys();
 }
 
     void run_master_orig() {

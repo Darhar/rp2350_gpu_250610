@@ -23,7 +23,8 @@ enum class i2cCmnds : uint8_t {
     i2c_vs_set = 0x04,  // value store
     i2c_vs_get = 0x05,  
     i2c_ack    = 0x06,
-    i2c_dirty_summary = 0x07,    
+    i2c_dirty_summary = 0x07,
+    i2c_dirty_bank  = 0x08,       
 /*
     i2c_imgLod,
     i2c_imgMov,

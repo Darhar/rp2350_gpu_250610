@@ -105,3 +105,22 @@ DirtySummary::DirtySummary(ScreenManager* mgr, KeyBoard* kbd, const uint8_t* dat
     resp_[7] = static_cast<uint8_t>(seq >> 24);
 }
 
+// Dirty bank: [bank(u8), options(u8)] -> mask(u32 LE)
+DirtyBank::DirtyBank(const uint8_t* data, size_t len)
+: i2cObj(data, len)
+{
+    uint8_t bank = 0, opts = 0;
+    if (data && len >= 2) { bank = data[0]; opts = data[1]; }
+
+    auto& vs = ValueStore::instance();
+    const bool clear = (opts & 0x01) != 0;
+
+    const uint32_t mask = clear ? vs.fetchAndClearBank(bank)
+                                : vs.loadBankMask(bank);
+
+    resp_[0] = (uint8_t)(mask >> 0);
+    resp_[1] = (uint8_t)(mask >> 8);
+    resp_[2] = (uint8_t)(mask >> 16);
+    resp_[3] = (uint8_t)(mask >> 24);
+}
+

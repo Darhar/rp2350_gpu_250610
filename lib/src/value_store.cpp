@@ -187,3 +187,19 @@ std::optional<uint32_t> ValueStore::firstDirtyBank() const noexcept {
     return std::nullopt;
 #endif
 }
+
+uint32_t ValueStore::loadBankMask(uint32_t bank) const noexcept {
+    if (bank >= bankDirty_.size()) return 0u;
+    return bankDirty_[bank].mask.load(std::memory_order_acquire);
+}
+
+uint32_t ValueStore::fetchAndClearBank(uint32_t bank) noexcept {
+    if (bank >= bankDirty_.size()) return 0u;
+    const uint32_t old = bankDirty_[bank].mask.exchange(0u, std::memory_order_acq_rel);
+    if (old != 0u) {
+        // Clear the bank bit in the global mask; concurrent sets will re-set it.
+        const uint64_t bit = ~(1ull << bank);
+        dirtyBanksMask_.fetch_and(bit, std::memory_order_acq_rel);
+    }
+    return old;
+}

@@ -112,7 +112,12 @@ class ValueStore {
         inline std::optional<uint32_t> getU32 (ValueCat c, uint16_t a, uint16_t b) const noexcept { return getU32(VKey(c,a,b)); }
 
         std::optional<uint32_t> firstDirtyBank() const noexcept;
-        uint32_t seq() const noexcept { return seq_.load(std::memory_order_acquire); }        
+        uint32_t seq() const noexcept { return seq_.load(std::memory_order_acquire); }      
+        // Return current 32-bit dirty mask for a bank (0 if out of range)
+        uint32_t loadBankMask(uint32_t bank) const noexcept;
+        // Atomically fetch and clear a bank; also clears global bit if mask becomes 0
+        uint32_t fetchAndClearBank(uint32_t bank) noexcept;  
+        
 
 private:
     // Storage slot — 32-bit atomic raw payload for lock-free access

@@ -67,12 +67,22 @@ void ValueStore::freeze() {
     const uint32_t slots  = static_cast<uint32_t>(slots_.size());
     const uint32_t nbanks = (slots + 31u) >> 5;
 
-bankDirty_.clear();
-bankDirty_.resize(nbanks);
-for (auto& b : bankDirty_) {
-    b.mask.store(0u, std::memory_order_relaxed);  // <-- .mask
-}
-dirtyBanksMask_.store(0ULL, std::memory_order_relaxed);
+    versions_.clear();
+    versions_.resize(slots_.size());
+    for (auto& vc : versions_) vc.v.store(0u, std::memory_order_relaxed);
+
+    bankDirty_.clear();
+    bankDirty_.resize(nbanks);
+    for (auto& b : bankDirty_) {
+        b.mask.store(0u, std::memory_order_relaxed);  // <-- .mask
+    }
+    dirtyBanksMask_.store(0ULL, std::memory_order_relaxed);
+    // A4: clear ring + seq
+    ringHead_.store(0u, std::memory_order_relaxed);
+    seq_.store(0u, std::memory_order_relaxed);
+    for (auto& a : ring_) a.store(0u, std::memory_order_relaxed);
+
+
 
     frozen_ = true; // keep as plain bool
 }
@@ -113,7 +123,9 @@ bool ValueStore::setBool(ValueKey key, bool v) noexcept {
 
     s.raw.store(new_raw, std::memory_order_release);
     markDirty(idx);
-    seq_.fetch_add(1, std::memory_order_acq_rel);
+    versions_[idx].v.fetch_add(1u, std::memory_order_acq_rel);    
+    recordChange(idx);
+    //seq_.fetch_add(1, std::memory_order_acq_rel);
     return true;
 }
 
@@ -132,7 +144,9 @@ bool ValueStore::setInt(ValueKey key, int v) noexcept {
 
     s.raw.store(new_raw, std::memory_order_release);
     markDirty(idx);
-    seq_.fetch_add(1, std::memory_order_acq_rel);
+    versions_[idx].v.fetch_add(1u, std::memory_order_acq_rel);    
+    recordChange(idx);
+    //seq_.fetch_add(1, std::memory_order_acq_rel);
     return true;
 }
 
@@ -151,9 +165,12 @@ bool ValueStore::setU32(ValueKey key, uint32_t v) noexcept {
 
     s.raw.store(new_raw, std::memory_order_release);
     markDirty(idx);
-    seq_.fetch_add(1, std::memory_order_acq_rel);
+    versions_[idx].v.fetch_add(1u, std::memory_order_acq_rel);    
+    recordChange(idx);
+    //seq_.fetch_add(1, std::memory_order_acq_rel);
     return true;
 }
+
 
 
 // -------------------------------
@@ -203,3 +220,64 @@ uint32_t ValueStore::fetchAndClearBank(uint32_t bank) noexcept {
     }
     return old;
 }
+
+std::size_t ValueStore::copyChangesSince(
+    uint32_t lastSeq,
+    uint16_t* out, 
+    std::size_t maxN,
+    uint32_t& curSeq,
+     bool& overflow) const noexcept
+{
+    curSeq = seq_.load(std::memory_order_acquire);
+    if (curSeq == lastSeq || maxN == 0) { overflow = false; return 0; }
+
+    const uint32_t diff = curSeq - lastSeq;          // natural modulo arithmetic on uint32_t
+    overflow = (diff > RING_SIZE);
+
+    // Choose the earliest sequence to return (drop oldest if overflow)
+    const uint32_t startSeq = overflow ? (curSeq - RING_SIZE + 1u)
+                                       : (lastSeq + 1u);
+    const uint32_t available = curSeq - startSeq + 1u;               // <= RING_SIZE
+    std::size_t n = static_cast<std::size_t>(available);
+    if (n > maxN) n = maxN;
+
+    for (std::size_t i = 0; i < n; ++i) {
+        const uint32_t seq_i = startSeq + static_cast<uint32_t>(i);
+        const uint32_t idx   = seq_i & RING_MASK;
+        out[i] = ring_[idx].load(std::memory_order_acquire);
+    }
+    return n;
+}
+
+std::optional<uint32_t> ValueStore::indexOf(ValueKey key) const noexcept {
+    auto it = index_.find(key);
+    if (it == index_.end()) return std::nullopt;
+    return static_cast<uint32_t>(it->second);
+}
+
+std::optional<ValueType> ValueStore::typeOf(ValueKey key) const noexcept {
+    auto it = index_.find(key);
+    if (it == index_.end()) return std::nullopt;
+    return slots_[it->second].type;
+}
+
+std::optional<uint32_t> ValueStore::versionOf(ValueKey key) const noexcept {
+    auto idx = indexOf(key);
+    if (!idx) return std::nullopt;
+    return versions_[*idx].v.load(std::memory_order_acquire);
+}
+
+bool ValueStore::slotDirty(uint32_t slotIdx) const noexcept {
+    const uint32_t bank = slotIdx >> 5;
+    const uint32_t bit  = slotIdx & 31;
+    if (bank >= bankDirty_.size()) return false;
+    const uint32_t m = bankDirty_[bank].mask.load(std::memory_order_acquire);
+    return (m & (1u << bit)) != 0;
+}
+
+bool ValueStore::clearDirty(ValueKey key) noexcept {
+    auto idx = indexOf(key);
+    if (!idx) return false;
+    return clearSlotDirty(*idx);
+}
+

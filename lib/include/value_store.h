@@ -9,7 +9,7 @@
 #include <vector>
 #include <atomic>
 #include <functional> // (usually pulled in via <unordered_map>, but explicit is fine)
-
+#include <array>
 // -------------------------------
 // Addressing / typing
 // -------------------------------
@@ -117,75 +117,135 @@ class ValueStore {
         uint32_t loadBankMask(uint32_t bank) const noexcept;
         // Atomically fetch and clear a bank; also clears global bit if mask becomes 0
         uint32_t fetchAndClearBank(uint32_t bank) noexcept;  
-        
+        // Copy up to maxN changed slot indices since lastSeq into out[].
+        // Returns the number copied, sets curSeq to the latest sequence, and overflow=true
+        // if there were more than the ring can hold since lastSeq.
+        std::size_t copyChangesSince(uint32_t lastSeq,
+                                    uint16_t* out, std::size_t maxN,
+                                    uint32_t& curSeq, bool& overflow) const noexcept;
 
-private:
-    // Storage slot — 32-bit atomic raw payload for lock-free access
-    struct Slot {
-        ValueKey              key{};
-        ValueType             type{ValueType::Nil};
-        std::atomic<uint32_t> raw{0};
+        // A5: per-slot status helpers
+        std::optional<uint32_t> indexOf(ValueKey key) const noexcept;
+        std::optional<ValueType> typeOf(ValueKey key) const noexcept;  // if you don’t already have it
+        std::optional<uint32_t> versionOf(ValueKey key) const noexcept;
 
-        Slot() = default;
-        Slot(const Slot&) = delete;
-        Slot& operator=(const Slot&) = delete;
+        // Returns true if the bit is set for this slot
+        bool slotDirty(uint32_t slotIdx) const noexcept;
 
-        // Move by value-copying the atomic contents
-        Slot(Slot&& other) noexcept
-            : key(other.key), type(other.type) {
-            raw.store(other.raw.load(std::memory_order_relaxed),
-                      std::memory_order_relaxed);
+        // Clear just this slot’s dirty bit (and global bank bit if that bank becomes empty)
+        bool clearDirty(ValueKey key) noexcept;
+
+    private:
+        // Storage slot — 32-bit atomic raw payload for lock-free access
+        struct Slot {
+            ValueKey              key{};
+            ValueType             type{ValueType::Nil};
+            std::atomic<uint32_t> raw{0};
+
+            Slot() = default;
+            Slot(const Slot&) = delete;
+            Slot& operator=(const Slot&) = delete;
+
+            // Move by value-copying the atomic contents
+            Slot(Slot&& other) noexcept
+                : key(other.key), type(other.type) {
+                raw.store(other.raw.load(std::memory_order_relaxed),
+                        std::memory_order_relaxed);
+            }
+            Slot& operator=(Slot&&) = delete;
+        };
+        std::atomic<uint32_t> seq_{0}; // increments on each successful value change
+        // Bank mask wrapper so vector can move/resize safely
+        struct BankMask {
+            std::atomic<uint32_t> mask{0};
+            BankMask() = default;
+            BankMask(const BankMask&) = delete;
+            BankMask& operator=(const BankMask&) = delete;
+            BankMask(BankMask&& other) noexcept {
+                mask.store(other.mask.load(std::memory_order_relaxed),
+                        std::memory_order_relaxed);
+            }
+            BankMask& operator=(BankMask&&) = delete;
+        };
+
+        // Builder storage: key -> (type, defaultRaw)
+        std::unordered_map<ValueKey, std::pair<ValueType,uint32_t>, ValueKeyHash> pending_;
+
+        // Frozen storage
+        std::vector<Slot>                                       slots_;
+        std::unordered_map<ValueKey, std::size_t, ValueKeyHash> index_;
+        bool                                                    frozen_ = false;
+
+        // Phase A1 state
+        std::vector<BankMask>           bankDirty_;            // one u32 mask per 32 slots
+        std::atomic<uint64_t>           dirtyBanksMask_{0};
+
+        // Lookup (nullptr if not found or not frozen)
+        Slot*       find(ValueKey key) noexcept;
+        const Slot* find(ValueKey key) const noexcept;
+
+        // Mark a slot as dirty (called only when value actually changes)
+        inline void markDirty(uint32_t slotIdx) noexcept {
+            const uint32_t bank = slotIdx >> 5;   // /32
+            const uint32_t bit  = slotIdx & 31;   // %32
+            if (bank < bankDirty_.size()) {
+                bankDirty_[bank].mask.fetch_or(1u << bit, std::memory_order_release);
+                dirtyBanksMask_.fetch_or(1ULL << bank, std::memory_order_release);
+            }
         }
-        Slot& operator=(Slot&&) = delete;
-    };
-    std::atomic<uint32_t> seq_{0}; // increments on each successful value change
-    // Bank mask wrapper so vector can move/resize safely
-    struct BankMask {
-        std::atomic<uint32_t> mask{0};
-        BankMask() = default;
-        BankMask(const BankMask&) = delete;
-        BankMask& operator=(const BankMask&) = delete;
-        BankMask(BankMask&& other) noexcept {
-            mask.store(other.mask.load(std::memory_order_relaxed),
-                       std::memory_order_relaxed);
+
+        // Bitcasts
+        static inline uint32_t to_raw_bool(bool v)      noexcept { return v ? 1u : 0u; }
+        static inline uint32_t to_raw_int (int v)       noexcept { return static_cast<uint32_t>(static_cast<int32_t>(v)); }
+        static inline uint32_t to_raw_u32 (uint32_t v)  noexcept { return v; }
+
+        static inline bool     from_raw_bool(uint32_t r) noexcept { return (r & 1u) != 0; }
+        static inline int      from_raw_int (uint32_t r) noexcept { return static_cast<int32_t>(r); }
+        static inline uint32_t from_raw_u32 (uint32_t r) noexcept { return r; }
+
+        // ---- A4 ring buffer (power-of-2) ----
+        static constexpr uint32_t RING_LG2  = 7;                 // 128 entries
+        static constexpr uint32_t RING_SIZE = 1u << RING_LG2;
+        static constexpr uint32_t RING_MASK = RING_SIZE - 1;
+
+        // Internal head used by writers to reserve the next slot before publishing
+        std::atomic<uint32_t>   ringHead_{0};
+        std::array<std::atomic<uint16_t>, RING_SIZE> ring_{};
+
+        // Record a change: write ring slot, then publish new seq
+        inline void recordChange(uint32_t slotIdx) noexcept {
+            const uint32_t s = ringHead_.fetch_add(1, std::memory_order_acq_rel) + 1u;
+            ring_[s & RING_MASK].store(static_cast<uint16_t>(slotIdx), std::memory_order_release);
+            seq_.store(s, std::memory_order_release); // publish after entry is written
         }
-        BankMask& operator=(BankMask&&) = delete;
-    };
 
-    // Builder storage: key -> (type, defaultRaw)
-    std::unordered_map<ValueKey, std::pair<ValueType,uint32_t>, ValueKeyHash> pending_;
+        struct Version {
+            std::atomic<uint32_t> v{0};
+            Version() = default;
+            Version(const Version&) = delete;
+            Version& operator=(const Version&) = delete;
+            Version(Version&& other) noexcept {
+                v.store(other.v.load(std::memory_order_relaxed), std::memory_order_relaxed);
+            }
+            Version& operator=(Version&&) = delete;
+        };
 
-    // Frozen storage
-    std::vector<Slot>                                       slots_;
-    std::unordered_map<ValueKey, std::size_t, ValueKeyHash> index_;
-    bool                                                    frozen_ = false;
+        std::vector<Version> versions_;  // one counter per slot
 
-    // Phase A1 state
-    std::vector<BankMask>           bankDirty_;            // one u32 mask per 32 slots
-    std::atomic<uint64_t>           dirtyBanksMask_{0};
-
-    // Lookup (nullptr if not found or not frozen)
-    Slot*       find(ValueKey key) noexcept;
-    const Slot* find(ValueKey key) const noexcept;
-
-    // Mark a slot as dirty (called only when value actually changes)
-    inline void markDirty(uint32_t slotIdx) noexcept {
-        const uint32_t bank = slotIdx >> 5;   // /32
-        const uint32_t bit  = slotIdx & 31;   // %32
-        if (bank < bankDirty_.size()) {
-            bankDirty_[bank].mask.fetch_or(1u << bit, std::memory_order_release);
-            dirtyBanksMask_.fetch_or(1ULL << bank, std::memory_order_release);
+        inline bool clearSlotDirty(uint32_t slotIdx) noexcept {
+            const uint32_t bank = slotIdx >> 5;
+            const uint32_t bit  = slotIdx & 31;
+            if (bank >= bankDirty_.size()) return false;
+            const uint32_t mask = (1u << bit);
+            const uint32_t old  = bankDirty_[bank].mask.fetch_and(~mask, std::memory_order_acq_rel);
+            if ((old & mask) == 0) return false;  // wasn’t set
+            if ((old & ~mask) == 0) {
+                // this bank became empty → clear its bit in the global mask
+                dirtyBanksMask_.fetch_and(~(1ull << bank), std::memory_order_acq_rel);
+            }
+            return true;
         }
-    }
 
-    // Bitcasts
-    static inline uint32_t to_raw_bool(bool v)      noexcept { return v ? 1u : 0u; }
-    static inline uint32_t to_raw_int (int v)       noexcept { return static_cast<uint32_t>(static_cast<int32_t>(v)); }
-    static inline uint32_t to_raw_u32 (uint32_t v)  noexcept { return v; }
-
-    static inline bool     from_raw_bool(uint32_t r) noexcept { return (r & 1u) != 0; }
-    static inline int      from_raw_int (uint32_t r) noexcept { return static_cast<int32_t>(r); }
-    static inline uint32_t from_raw_u32 (uint32_t r) noexcept { return r; }
 
 };
 

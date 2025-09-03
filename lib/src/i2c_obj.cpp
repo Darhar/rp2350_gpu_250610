@@ -123,4 +123,102 @@ DirtyBank::DirtyBank(const uint8_t* data, size_t len)
     resp_[2] = (uint8_t)(mask >> 16);
     resp_[3] = (uint8_t)(mask >> 24);
 }
+// ChangesSince: [lastSeq(u32 LE), maxN(u8)] -> [curSeq(u32) | flags(u8) | count(u8) | count * slotIdx(u16 LE)]
+ChangesSince::ChangesSince(const uint8_t* data, size_t len)
+: i2cObj(data, len)
+{
+    uint32_t lastSeq = 0;
+    uint8_t  want    = MAX_ENTRIES;
 
+    if (data && len >= 5) {
+        lastSeq = (uint32_t)data[0] | ((uint32_t)data[1] << 8)
+                | ((uint32_t)data[2] << 16) | ((uint32_t)data[3] << 24);
+        want    = data[4];
+        if (want == 0) want = 1;
+        if (want > MAX_ENTRIES) want = MAX_ENTRIES;
+    }
+
+    uint16_t tmp[MAX_ENTRIES]{};
+    uint32_t curSeq = 0;
+    bool overflow = false;
+
+    auto& vs = ValueStore::instance();
+    const std::size_t got = vs.copyChangesSince(lastSeq, tmp, want, curSeq, overflow);
+
+    // Build response
+    resp_[0] = (uint8_t)(curSeq >> 0);
+    resp_[1] = (uint8_t)(curSeq >> 8);
+    resp_[2] = (uint8_t)(curSeq >> 16);
+    resp_[3] = (uint8_t)(curSeq >> 24);
+
+    uint8_t flags = 0;
+    if (overflow) flags |= 0x01; // bit0 = overflow
+    resp_[4] = flags;
+
+    resp_[5] = (uint8_t)got;     // count
+
+    // entries
+    for (std::size_t i = 0; i < got; ++i) {
+        const uint16_t slot = tmp[i];
+        const std::size_t off = 6 + i*2;
+        resp_[off + 0] = (uint8_t)(slot & 0xFF);
+        resp_[off + 1] = (uint8_t)(slot >> 8);
+    }
+
+    rlen_ = 6 + got*2;
+}
+
+// ---- STATUS: header + [addr(5) + options(1)] -> [type(1) + u32(4) + version(4) + dirty(1)] ----
+VsStatus::VsStatus(const uint8_t* data, size_t len)
+: i2cObj(data, len)
+{
+    VsAddr addr{};
+    uint8_t opts = 0;
+    if (!data || len < 6 || !parse_addr(data, 5, addr)) {
+        // invalid → return Nil/0s
+        resp_[0] = static_cast<uint8_t>(ValueType::Nil);
+        /* rest already zero */
+        return;
+    }
+    opts = data[5];
+
+    auto& vs = ValueStore::instance();
+    const ValueCat cat = static_cast<ValueCat>(addr.cat);
+    const ValueKey key{cat, addr.a, addr.b};
+
+    // Determine type and current raw value
+    ValueType t = vs.typeOf(key).value_or(ValueType::Nil);
+    uint32_t v  = 0;
+
+    switch (t) {
+        case ValueType::Bool: v = vs.getBool(key).value_or(false) ? 1u : 0u; break;
+        case ValueType::Int:  v = static_cast<uint32_t>(vs.getInt(key).value_or(0)); break;
+        case ValueType::U32:  v = vs.getU32(key).value_or(0); break;
+        default: t = ValueType::Nil; v = 0; break;
+    }
+
+    // Read version + dirty
+    uint32_t ver = vs.versionOf(key).value_or(0);
+    bool dirty = false;
+    if (auto idx = vs.indexOf(key)) dirty = vs.slotDirty(*idx);
+
+    // Optional CLEAR (after reading)
+    if ((opts & 0x01) && dirty) {
+        (void)vs.clearDirty(key);
+        // dirty bit might now be clear; we keep the pre-clear dirty state in the reply
+    }
+
+    // Build response
+    resp_[0] = static_cast<uint8_t>(t);
+    resp_[1] = (uint8_t)(v >> 0);
+    resp_[2] = (uint8_t)(v >> 8);
+    resp_[3] = (uint8_t)(v >> 16);
+    resp_[4] = (uint8_t)(v >> 24);
+
+    resp_[5] = (uint8_t)(ver >> 0);
+    resp_[6] = (uint8_t)(ver >> 8);
+    resp_[7] = (uint8_t)(ver >> 16);
+    resp_[8] = (uint8_t)(ver >> 24);
+
+    resp_[9] = dirty ? 1 : 0;
+}

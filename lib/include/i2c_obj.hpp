@@ -141,3 +141,21 @@ class DirtyBank : public i2cObj {
     private:
         uint8_t resp_[4]{};
 };
+
+class ChangesSince : public i2cObj {
+    public:
+        ChangesSince(const uint8_t* data, size_t len);
+        const uint8_t* getResponse(size_t& outLen) override { outLen = rlen_; return resp_; }
+    private:
+        static constexpr std::size_t MAX_ENTRIES = 16; // keep ISR-friendly and under buffer
+        uint8_t resp_[4 /*curSeq*/ + 1 /*flags*/ + 1 /*count*/ + MAX_ENTRIES*2]{};
+        std::size_t rlen_ = 0;
+};
+
+class VsStatus : public i2cObj {
+    public:
+        VsStatus(const uint8_t* data, size_t len);
+        const uint8_t* getResponse(size_t& outLen) override { outLen = 10; return resp_; }
+    private:
+        uint8_t resp_[10]{};
+};

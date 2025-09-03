@@ -21,19 +21,17 @@ static ScreenManager* s_mgr = nullptr;
 
 // --- wire helpers ---
 static inline void pack_addr(uint8_t* out, uint8_t cat, uint16_t a, uint16_t b) {
-    out[0] = cat; out[1] = (uint8_t)(a>>0); out[2] = (uint8_t)(a>>8);
-                   out[3] = (uint8_t)(b>>0); out[4] = (uint8_t)(b>>8);
+    out[0] = cat; 
+    out[1] = (uint8_t)(a>>0); out[2] = (uint8_t)(a>>8);
+    out[3] = (uint8_t)(b>>0); out[4] = (uint8_t)(b>>8);
 }
 static inline void pack_val(uint8_t* out, uint8_t type, uint32_t v) {
-    out[0] = type; out[1] = (uint8_t)(v>>0); out[2] = (uint8_t)(v>>8);
-                   out[3] = (uint8_t)(v>>16); out[4] = (uint8_t)(v>>24);
+    out[0] = type; 
+    out[1] = (uint8_t)(v>>0); out[2] = (uint8_t)(v>>8);
+    out[3] = (uint8_t)(v>>16); out[4] = (uint8_t)(v>>24);
 }
 
-
-
-
 namespace vs_demo {
-
 
     // ValueStore wire types (must match ValueType)
     enum : uint8_t { WT_Nil=0, WT_Bool=1, WT_Int=2, WT_U32=3 };
@@ -58,7 +56,6 @@ namespace vs_demo {
         bytes[3] = static_cast<uint8_t>((command >> 24) & 0xFF);
     }
 
-
     // --- send SET: header + addr(5) + val(5) in ONE write (14 bytes) ---
     static bool vs_set_w(uint8_t cat, uint16_t a, uint16_t b, uint8_t type, uint32_t v) {
         uint8_t frame[4 + 5 + 5]; uint8_t* p = frame;
@@ -70,8 +67,6 @@ namespace vs_demo {
         int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), /*nostop=*/false);
         return w == (int)sizeof(frame);
     }
-
-
 
     // --- send GET: write [header+addr] (9 bytes), then read 5 bytes reply ---
     static bool vs_get_r(uint8_t cat, uint16_t a, uint16_t b, uint8_t& outType, uint32_t& outVal) {
@@ -135,280 +130,362 @@ namespace vs_demo {
         i2c_init(i2c1, I2C_BAUDRATE);
     }
 
-// Same packed shape used on the slave
-struct __attribute__((packed)) KeyReport {
-    uint8_t  key;        // 0..5
-    uint8_t  stateBits;  // bit0 = DOWN
-    uint8_t  edgeBits;   // bit0 = PRESS, bit1 = RELEASE (latched; cleared on read)
-    uint8_t  analog;     // adc_read()/50 bucket
-    uint32_t eventCount; // increments on edges
-};
+    // Same packed shape used on the slave
+    struct __attribute__((packed)) KeyReport {
+        uint8_t  key;        // 0..5
+        uint8_t  stateBits;  // bit0 = DOWN
+        uint8_t  edgeBits;   // bit0 = PRESS, bit1 = RELEASE (latched; cleared on read)
+        uint8_t  analog;     // adc_read()/50 bucket
+        uint32_t eventCount; // increments on edges
+    };
 
-void checkKeys(){
-    if (!s_mgr) return;
+    void checkKeys(){
+        if (!s_mgr) return;
 
-    // Build the 4-byte "get keyboard" command
-    uint8_t cmd[4];
-    encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_getKb), /*flags=*/0, /*screenId=*/0, /*paramBits=*/0, cmd);
+        // Build the 4-byte "get keyboard" command
+        uint8_t cmd[4];
+        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_getKb), /*flags=*/0, /*screenId=*/0, /*paramBits=*/0, cmd);
 
-    // Track last printed state
-    static bool       havePrev = false;
-    static KeyReport  prev{};
+        // Track last printed state
+        static bool       havePrev = false;
+        static KeyReport  prev{};
 
-    // Poll quickly here; core1_entry already throttles outer loop if you want
-    for (int i = 0; i < 100; ++i) {
-        // 1) WRITE: send command and finish with STOP so slave stages reply on FINISH
-        int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, cmd, sizeof(cmd), /*nostop=*/false);
-        if (w != (int)sizeof(cmd)) {
-            // Only print write errors if we never printed one before to avoid spam
-            static bool wroteErr = false;
-            if (!wroteErr) {
-                DEBUG_PRINTLN("i2c write failed: %d", w);
-                wroteErr = true;
+        // Poll quickly here; core1_entry already throttles outer loop if you want
+        for (int i = 0; i < 100; ++i) {
+            // 1) WRITE: send command and finish with STOP so slave stages reply on FINISH
+            int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, cmd, sizeof(cmd), /*nostop=*/false);
+            if (w != (int)sizeof(cmd)) {
+                // Only print write errors if we never printed one before to avoid spam
+                static bool wroteErr = false;
+                if (!wroteErr) {
+                    DEBUG_PRINTLN("i2c write failed: %d", w);
+                    wroteErr = true;
+                }
+                sleep_ms(200);
+                continue;
             }
-            sleep_ms(200);
-            continue;
-        }
 
-        // Tiny gap—usually safe without, but harmless
-        sleep_us(1000);
+            // Tiny gap—usually safe without, but harmless
+            sleep_us(1000);
 
-        // 2) READ: fetch the 8-byte KeyReport
-        KeyReport rep{};
-        int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS,
-                                  reinterpret_cast<uint8_t*>(&rep), sizeof(rep),
-                                  /*nostop=*/false);
-        if (r != (int)sizeof(rep)) {
-            static bool readErr = false;
-            if (!readErr) {
-                DEBUG_PRINTLN("i2c read failed: rc=%d", r);
-                readErr = true;
+            // 2) READ: fetch the 8-byte KeyReport
+            KeyReport rep{};
+            int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS,
+                                    reinterpret_cast<uint8_t*>(&rep), sizeof(rep),
+                                    /*nostop=*/false);
+            if (r != (int)sizeof(rep)) {
+                static bool readErr = false;
+                if (!readErr) {
+                    DEBUG_PRINTLN("i2c read failed: rc=%d", r);
+                    readErr = true;
+                }
+                sleep_ms(200);
+                continue;
             }
-            sleep_ms(200);
-            continue;
-        }
 
-        // Decide if we should print:
-        // - Always print first sample
-        // - Print on any edge (PRESS/RELEASE)
-        // - Print if key index changed
-        // - Print if DOWN bit changed
-        // - Optionally print analog changes when no key is down (filter small jitter)
-        bool changed = false;
+            // Decide if we should print:
+            // - Always print first sample
+            // - Print on any edge (PRESS/RELEASE)
+            // - Print if key index changed
+            // - Print if DOWN bit changed
+            // - Optionally print analog changes when no key is down (filter small jitter)
+            bool changed = false;
 
-        if (!havePrev) {
-            changed = true;
-        } else {
-            const bool downNow  = (rep.stateBits & 0x01) != 0;
-            const bool downPrev = (prev.stateBits & 0x01) != 0;
-
-            if (rep.edgeBits != 0)                changed = true;                 // an edge happened
-            else if (rep.key != prev.key)         changed = true;                 // different key bucket
-            else if (downNow != downPrev)         changed = true;                 // up/down flipped
-            else if (!downNow) {
-                // Only when idle: print if analog bucket moved significantly
-                // (1 bucket step can be noise; require >=2 steps)
-                uint8_t d = (rep.analog > prev.analog) ? (rep.analog - prev.analog)
-                                                       : (prev.analog - rep.analog);
-                if (d >= 2) changed = true;
-            }
-        }
-
-        if (changed) {
-            const bool down = (rep.stateBits & 0x01) != 0;
-            // Friendly edge text
-            const bool pressed  = (rep.edgeBits & 0x01) != 0;
-            const bool released = (rep.edgeBits & 0x02) != 0;
-
-            if (pressed || released) {
-                DEBUG_PRINTLN("KB edge: key=%u pressed=%u released=%u analog=%u events=%lu",
-                              rep.key, pressed ? 1 : 0, released ? 1 : 0,
-                              rep.analog, (unsigned long)rep.eventCount);
-            } else if (down) {
-                DEBUG_PRINTLN("KB hold: key=%u analog=%u events=%lu",
-                              rep.key, rep.analog, (unsigned long)rep.eventCount);
+            if (!havePrev) {
+                changed = true;
             } else {
-                DEBUG_PRINTLN("KB idle: analog=%u events=%lu",
-                              rep.analog, (unsigned long)rep.eventCount);
+                const bool downNow  = (rep.stateBits & 0x01) != 0;
+                const bool downPrev = (prev.stateBits & 0x01) != 0;
+
+                if (rep.edgeBits != 0)                changed = true;                 // an edge happened
+                else if (rep.key != prev.key)         changed = true;                 // different key bucket
+                else if (downNow != downPrev)         changed = true;                 // up/down flipped
+                else if (!downNow) {
+                    // Only when idle: print if analog bucket moved significantly
+                    // (1 bucket step can be noise; require >=2 steps)
+                    uint8_t d = (rep.analog > prev.analog) ? (rep.analog - prev.analog)
+                                                        : (prev.analog - rep.analog);
+                    if (d >= 2) changed = true;
+                }
             }
 
-            prev = rep;
-            havePrev = true;
+            if (changed) {
+                const bool down = (rep.stateBits & 0x01) != 0;
+                // Friendly edge text
+                const bool pressed  = (rep.edgeBits & 0x01) != 0;
+                const bool released = (rep.edgeBits & 0x02) != 0;
+
+                if (pressed || released) {
+                    DEBUG_PRINTLN("KB edge: key=%u pressed=%u released=%u analog=%u events=%lu",
+                                rep.key, pressed ? 1 : 0, released ? 1 : 0,
+                                rep.analog, (unsigned long)rep.eventCount);
+                } else if (down) {
+                    DEBUG_PRINTLN("KB hold: key=%u analog=%u events=%lu",
+                                rep.key, rep.analog, (unsigned long)rep.eventCount);
+                } else {
+                    DEBUG_PRINTLN("KB idle: analog=%u events=%lu",
+                                rep.analog, (unsigned long)rep.eventCount);
+                }
+
+                prev = rep;
+                havePrev = true;
+            }
+
+            sleep_ms(50); // poll period; tweak as needed
         }
-
-        sleep_ms(50); // poll period; tweak as needed
     }
-}
 
-static bool request_ack(uint8_t& out_status) {
-    uint8_t hdr[4];
-    encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_ack), /*flags*/0, /*screenId*/0, /*paramBits*/0, hdr);
+    static bool request_ack(uint8_t& out_status) {
+        uint8_t hdr[4];
+        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_ack), /*flags*/0, /*screenId*/0, /*paramBits*/0, hdr);
 
-    int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, hdr, sizeof(hdr), /*nostop=*/false);
-    if (w != (int)sizeof(hdr)) return false;
+        int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, hdr, sizeof(hdr), /*nostop=*/false);
+        if (w != (int)sizeof(hdr)) return false;
 
-    uint8_t st = 0xFF;
-    int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, &st, 1, /*nostop=*/false);
-    if (r != 1) return false;
-
-    out_status = st;
-    return true;
-}
-
-static void checkAck() {
-    for (int i = 0; i < 10; ++i) {
         uint8_t st = 0xFF;
-        bool ok = request_ack(st);
-        if (!ok) {
-            DEBUG_PRINTLN("ACK: write/read failed");
-        } else {
-            // Decode bits: 0=alive,1=vsFrozen,2=hasMgr,3=hasKbd,4=rxOverflow (optional)
-            DEBUG_PRINTLN("ACK: 0x%02X  alive=%u vsFrozen=%u mgr=%u kbd=%u ovf=%u",
-                          st, (st>>0)&1, (st>>1)&1, (st>>2)&1, (st>>3)&1, (st>>4)&1);
+        int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, &st, 1, /*nostop=*/false);
+        if (r != 1) return false;
+
+        out_status = st;
+        return true;
+    }
+
+    static void checkAck() {
+        for (int i = 0; i < 10; ++i) {
+            uint8_t st = 0xFF;
+            bool ok = request_ack(st);
+            if (!ok) {
+                DEBUG_PRINTLN("ACK: write/read failed");
+            } else {
+                // Decode bits: 0=alive,1=vsFrozen,2=hasMgr,3=hasKbd,4=rxOverflow (optional)
+                DEBUG_PRINTLN("ACK: 0x%02X  alive=%u vsFrozen=%u mgr=%u kbd=%u ovf=%u",
+                            st, (st>>0)&1, (st>>1)&1, (st>>2)&1, (st>>3)&1, (st>>4)&1);
+            }
+            sleep_ms(500);
         }
-        sleep_ms(500);
     }
-}
-static bool read_ack(uint8_t& out) {
-    uint8_t hdr[4];
-    encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_ack), 0, 0, 0, hdr);
-    if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, hdr, sizeof(hdr), false) != 4) return false;
-    return i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, &out, 1, false) == 1;
-}
-
-static void checkAck_A1_once(const char* tag) {
-    uint8_t st=0;
-    if (read_ack(st)) {
-        printf("%s: ACK: 0x%02X  alive=%u vsFrozen=%u mgr=%u kbd=%u ovf=%u anyDirty=%u\n",
-               tag, st, (st>>0)&1, (st>>1)&1, (st>>2)&1, (st>>3)&1, (st>>4)&1, (st>>5)&1);
-    } else {
-        printf("%s: ACK read failed\n", tag);
-    }
-}
-static bool dirty_summary(uint8_t (&out)[8]) {
-    uint8_t hdr[4];
-    encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_dirty_summary), 0, 0, 0, hdr);
-    if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, hdr, sizeof(hdr), false) != 4) return false;
-    return i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, out, 8, false) == 8;
-}
-
-static void checkDirtySummary() {
-    uint8_t s[8]{};
-    if (!dirty_summary(s)) { printf("dirty_summary: read failed\n"); return; }
-    const uint8_t flags = s[0];
-    const uint8_t bw    = s[1];
-    const uint8_t nb    = s[2];
-    const uint8_t fdb   = s[3];
-    const uint32_t seq  = (uint32_t)s[4] | ((uint32_t)s[5] << 8) | ((uint32_t)s[6] << 16) | ((uint32_t)s[7] << 24);
-
-    printf("DIRSUM: flags=0x%02X anyDirty=%u bw=%u nb=%u firstDirtyBank=%u seq=%lu\n",
-           flags, (flags>>5)&1, bw, nb, (unsigned)fdb, (unsigned long)seq);
-}
-/*
-static bool dirty_bank_req(uint8_t bank, uint8_t options, uint32_t& outMask) {
-    uint8_t hdr[4];
-    encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_dirty_bank), 0, 0, 0, hdr);
-
-    uint8_t frame[4 + 2] = { hdr[0], hdr[1], hdr[2], hdr[3], bank, options };
-    int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), false);
-    if (w != (int)sizeof(frame)) return false;
-
-    uint8_t resp[4]{};
-    int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, resp, sizeof(resp),false);
-    if (r != 4) return false;
-
-    outMask = (uint32_t)resp[0] | ((uint32_t)resp[1] << 8) |
-              ((uint32_t)resp[2] << 16) | ((uint32_t)resp[3] << 24);
-    return true;
-}
-*/
-static bool dirty_bank_req(uint8_t bank, uint8_t options, uint32_t& outMask) {
-    uint8_t hdr[4];
-    encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_dirty_bank), 0, 0, 0, hdr);
-
-    uint8_t frame[6] = { hdr[0], hdr[1], hdr[2], hdr[3], bank, options };
-    int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), false);
-    if (w != (int)sizeof(frame)) return false;
-
-    uint8_t resp[4]{};
-    int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, resp, sizeof(resp), false);
-    if (r != 4) return false;
-
-    outMask = (uint32_t)resp[0] | ((uint32_t)resp[1] << 8) |
-              ((uint32_t)resp[2] << 16) | ((uint32_t)resp[3] << 24);
-    return true;
-}
-
-static void test_dirty_bank_once() {
-    // 1) Summary (see which bank to hit)
-    uint8_t sum[8]{};
-    if (!dirty_summary(sum)) { printf("DIRSUM read failed\n"); return; }
-    const uint8_t fdb = sum[3];
-    const uint8_t anyDirty = (sum[0] >> 5) & 1;
-    printf("DIRSUM: anyDirty=%u firstDirtyBank=%u seq=%lu\n",
-           anyDirty, (unsigned)fdb,
-           (unsigned long)((uint32_t)sum[4] | ((uint32_t)sum[5] << 8) | ((uint32_t)sum[6] << 16) | ((uint32_t)sum[7] << 24)));
-
-    if (fdb == 0xFF) return;
-
-    // 2) Fetch & CLEAR that bank
-    uint32_t mask = 0;
-    if (dirty_bank_req(fdb, /*CLEAR*/1, mask)) {
-        printf("DIRBANK: bank=%u mask=0x%08lx (cleared)\n", (unsigned)fdb, (unsigned long)mask);
-    } else {
-        printf("DIRBANK: request failed\n");
+    static bool read_ack(uint8_t& out) {
+        uint8_t hdr[4];
+        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_ack), 0, 0, 0, hdr);
+        if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, hdr, sizeof(hdr), false) != 4) return false;
+        return i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, &out, 1, false) == 1;
     }
 
-    // 3) ACK should go low if no new writes arrived
-    uint8_t st=0;
-    if (read_ack(st)) {
-        printf("ACK: 0x%02X anyDirty=%u\n", st, (st>>5)&1);
+    static void checkAck_A1_once(const char* tag) {
+        uint8_t st=0;
+        if (read_ack(st)) {
+            printf("%s: ACK: 0x%02X  alive=%u vsFrozen=%u mgr=%u kbd=%u ovf=%u anyDirty=%u\n",
+                tag, st, (st>>0)&1, (st>>1)&1, (st>>2)&1, (st>>3)&1, (st>>4)&1, (st>>5)&1);
+        } else {
+            printf("%s: ACK read failed\n", tag);
+        }
     }
-}
+    static bool dirty_summary(uint8_t (&out)[8]) {
+        uint8_t hdr[4];
+        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_dirty_summary), 0, 0, 0, hdr);
+        if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, hdr, sizeof(hdr), false) != 4) return false;
+        return i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, out, 8, false) == 8;
+    }
 
-void run_master() {
-    // 1) Do one write so something is dirty (e.g., System,0,2 = 42)
-    uint8_t st_dummy;
-    vs_set_w((uint8_t)ValueCat::System, 0, 2, /*WT_Int=*/2, 42);
+    static void checkDirtySummary() {
+        uint8_t s[8]{};
+        if (!dirty_summary(s)) { printf("dirty_summary: read failed\n"); return; }
+        const uint8_t flags = s[0];
+        const uint8_t bw    = s[1];
+        const uint8_t nb    = s[2];
+        const uint8_t fdb   = s[3];
+        const uint32_t seq  = (uint32_t)s[4] | ((uint32_t)s[5] << 8) | ((uint32_t)s[6] << 16) | ((uint32_t)s[7] << 24);
 
-    // 2) Ask for summary
-    uint8_t sum[8]{};
-    dirty_summary(sum);
-    uint8_t fdb = sum[3];
-    printf("DIRSUM: anyDirty=%u firstDirtyBank=%u seq=%lu\n",
-        (sum[0]>>5)&1, (unsigned)fdb,
-        (unsigned long)((uint32_t)sum[4] | ((uint32_t)sum[5]<<8) |
-                        ((uint32_t)sum[6]<<16) | ((uint32_t)sum[7]<<24)));
+        printf("DIRSUM: flags=0x%02X anyDirty=%u bw=%u nb=%u firstDirtyBank=%u seq=%lu\n",
+            flags, (flags>>5)&1, bw, nb, (unsigned)fdb, (unsigned long)seq);
+    }
 
-    // 3) Fetch & CLEAR that bank
-    if (fdb != 0xFF) {
-        uint32_t mask=0;
+    
+    static bool dirty_bank_req(uint8_t bank, uint8_t options, uint32_t& outMask) {
+        uint8_t hdr[4];
+        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_dirty_bank), 0, 0, 0, hdr);
+
+        uint8_t frame[6] = { hdr[0], hdr[1], hdr[2], hdr[3], bank, options };
+        int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), false);
+        if (w != (int)sizeof(frame)) return false;
+
+        uint8_t resp[4]{};
+        int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, resp, sizeof(resp), false);
+        if (r != 4) return false;
+
+        outMask = (uint32_t)resp[0] | ((uint32_t)resp[1] << 8) |
+                ((uint32_t)resp[2] << 16) | ((uint32_t)resp[3] << 24);
+        return true;
+    }
+
+    static void test_dirty_bank_once() {
+        // 1) Summary (see which bank to hit)
+        uint8_t sum[8]{};
+        if (!dirty_summary(sum)) { printf("DIRSUM read failed\n"); return; }
+        const uint8_t fdb = sum[3];
+        const uint8_t anyDirty = (sum[0] >> 5) & 1;
+        printf("DIRSUM: anyDirty=%u firstDirtyBank=%u seq=%lu\n",
+            anyDirty, (unsigned)fdb,
+            (unsigned long)((uint32_t)sum[4] | ((uint32_t)sum[5] << 8) | ((uint32_t)sum[6] << 16) | ((uint32_t)sum[7] << 24)));
+
+        if (fdb == 0xFF) return;
+
+        // 2) Fetch & CLEAR that bank
+        uint32_t mask = 0;
         if (dirty_bank_req(fdb, /*CLEAR*/1, mask)) {
             printf("DIRBANK: bank=%u mask=0x%08lx (cleared)\n", (unsigned)fdb, (unsigned long)mask);
+        } else {
+            printf("DIRBANK: request failed\n");
+        }
+
+        // 3) ACK should go low if no new writes arrived
+        uint8_t st=0;
+        if (read_ack(st)) {
+            printf("ACK: 0x%02X anyDirty=%u\n", st, (st>>5)&1);
         }
     }
 
-    // 4) ACK should now have anyDirty=0 (if no new writes arrived)
-    uint8_t ack=0;
-    read_ack(ack);
-    printf("ACK: 0x%02X anyDirty=%u\n", ack, (ack>>5)&1);
-   
-    /*checkAck();
-    for (int i = 0; i < 5; ++i) {   // a handful of cycles per call
-         test_dirty_bank_once();
-        sleep_ms(200);
-    }
-    for (int i = 0; i < 10; ++i) {   // a handful of cycles per call
-        checkDirtySummary();
-        //checkAck_A1_once("Before SET");
-        checkVS();
-        checkDirtySummary();
-        //checkAck_A1_once("After  SET");
+    static bool changes_since_req(uint32_t lastSeq, uint8_t maxN,
+                                uint32_t& curSeq, uint8_t& flags,
+                                std::vector<uint16_t>& outSlots)
+    {
+        uint8_t hdr[4];
+        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_changes_since), 0, 0, 0, hdr);
 
-        sleep_ms(400);
-    }    
-    */checkKeys();
-}
+        uint8_t frame[4 + 5] = {
+            hdr[0], hdr[1], hdr[2], hdr[3],
+            (uint8_t)(lastSeq >> 0), (uint8_t)(lastSeq >> 8),
+            (uint8_t)(lastSeq >> 16), (uint8_t)(lastSeq >> 24),
+            maxN
+        };
+
+        if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), false) != (int)sizeof(frame))
+            return false;
+
+        // Read header first (curSeq, flags, count)
+        uint8_t head[6]{};
+        if (i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, head, sizeof(head), false) != (int)sizeof(head))
+            return false;
+
+        curSeq = (uint32_t)head[0] | ((uint32_t)head[1] << 8) |
+                ((uint32_t)head[2] << 16) | ((uint32_t)head[3] << 24);
+        flags  = head[4];
+        const uint8_t count = head[5];
+
+        outSlots.clear();
+        if (count == 0) return true;
+
+        // Now read the slots (2*count bytes)
+        std::vector<uint8_t> buf(2 * count);
+        if (i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, buf.data(), (int)buf.size(), false) != (int)buf.size())
+            return false;
+
+        outSlots.reserve(count);
+        for (uint8_t i = 0; i < count; ++i) {
+            uint16_t s = (uint16_t)buf[i*2 + 0] | ((uint16_t)buf[i*2 + 1] << 8);
+            outSlots.push_back(s);
+        }
+        return true;
+    }
+
+    static void checkRing() {
+        static uint32_t lastSeq = 0;
+
+        uint32_t curSeq = 0;
+        uint8_t  flags  = 0;
+        std::vector<uint16_t> slots;
+        if (!changes_since_req(lastSeq, /*maxN*/8, curSeq, flags, slots)) {
+            printf("CHGSINCE: read failed\n"); return;
+        }
+
+        const bool overflow = (flags & 0x01) != 0;
+        printf("CHGSINCE: last=%lu -> cur=%lu overflow=%u count=%u\n",
+            (unsigned long)lastSeq, (unsigned long)curSeq, overflow ? 1 : 0, (unsigned)slots.size());
+        for (auto s : slots) {
+            printf("  slot=%u\n", (unsigned)s);
+        }
+        lastSeq = curSeq;
+    }
+
+    static bool vs_status_req(uint8_t cat, uint16_t a, uint16_t b, uint8_t options,
+                            uint8_t& type, uint32_t& val, uint32_t& ver, uint8_t& dirty)
+    {
+        uint8_t hdr[4];
+        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_vs_status), 0, 0, 0, hdr);
+
+        uint8_t frame[4 + 6] = {
+            hdr[0], hdr[1], hdr[2], hdr[3],
+            cat,
+            (uint8_t)(a & 0xFF), (uint8_t)(a >> 8),
+            (uint8_t)(b & 0xFF), (uint8_t)(b >> 8),
+            options
+        };
+
+        if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), false) != (int)sizeof(frame))
+            return false;
+
+        uint8_t resp[10]{};
+        if (i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, resp, sizeof(resp), false) != (int)sizeof(resp))
+            return false;
+
+        type  = resp[0];
+        val   = (uint32_t)resp[1] | ((uint32_t)resp[2] << 8) |
+                ((uint32_t)resp[3] << 16) | ((uint32_t)resp[4] << 24);
+        ver   = (uint32_t)resp[5] | ((uint32_t)resp[6] << 8) |
+                ((uint32_t)resp[7] << 16) | ((uint32_t)resp[8] << 24);
+        dirty = resp[9];
+        return true;
+    }
+
+    static void test_vs_status_once(bool clearBit) {
+        uint8_t type=0, dirty=0;
+        uint32_t val=0, ver=0;
+
+        // Query System,0,2 (your MODE) — adjust if you like
+        const uint8_t cat = static_cast<uint8_t>(ValueCat::System);
+        const uint16_t a = 0, b = 2;
+        uint8_t opts = clearBit ? 0x01 : 0x00;
+
+        if (vs_status_req(cat, a, b, opts, type, val, ver, dirty)) {
+            printf("VS_STATUS: (cat=%u,%u,%u) type=%u val=%lu ver=%lu dirty=%u%s\n",
+                (unsigned)cat, (unsigned)a, (unsigned)b,
+                (unsigned)type, (unsigned long)val, (unsigned long)ver,
+                (unsigned)dirty, clearBit ? " (CLEARED)" : "");
+        } else {
+            printf("VS_STATUS: request failed\n");
+        }
+    }
+
+
+    void run_master() {
+        uint8_t sum[8]{};
+        dirty_summary(sum);
+        uint8_t fdb = sum[3];
+        printf("DIRSUM: anyDirty=%u firstDirtyBank=%u seq=%lu\n",
+            (sum[0]>>5)&1, (unsigned)fdb,
+            (unsigned long)((uint32_t)sum[4] | ((uint32_t)sum[5]<<8) |
+                            ((uint32_t)sum[6]<<16) | ((uint32_t)sum[7]<<24)));
+        test_vs_status_once(false);
+        test_vs_status_once(true);
+        {
+            uint8_t sum2[8]{};
+            if (dirty_summary(sum2)) {
+                const bool anyDirty2 = ((sum2[0] >> 5) & 1) != 0;
+                const uint8_t fdb2   = sum2[3];
+                if (anyDirty2 && fdb2 != 0xFF) {
+                    uint32_t mask = 0;
+                    if (dirty_bank_req(fdb2, /*CLEAR*/1, mask)) {
+                        printf("BANK CLEAR: bank=%u mask=0x%08lx\n",
+                            (unsigned)fdb2, (unsigned long)mask);
+                    }
+                }
+            }
+        }
+
+        uint8_t ack=0; read_ack(ack);
+        printf("ACK: 0x%02X anyDirty=%u\n", ack, (ack>>5)&1);
+        checkKeys();
+    }
 
     void run_master_orig() {
         if (!s_mgr) return;
@@ -438,7 +515,7 @@ void run_master() {
         while (true) {
             run_master();       // your dev traffic
             // you can also peek s_mgr->getActiveScreen() if you kept a pointer
-            sleep_ms(5000);
+            //sleep_ms(5000);
         }
     }
 

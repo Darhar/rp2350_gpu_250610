@@ -10,11 +10,20 @@
 #include "pico/multicore.h"
 #include "debug.h"
 #include "keyboard.h"
-#include "value_store.h"  // add this include
+#include "value_store.h" 
 
 #ifndef WAITFORSERIAL
-  #define WAITFORSERIAL 0
+  #define WAITFORSERIAL 1
 #endif
+
+#ifndef TEST_LOCAL_VS_WRITES
+#define TEST_LOCAL_VS_WRITES 0
+#endif
+
+static constexpr ValueKey K_KB_MASK = VKey(ValueCat::Keyboard,0,0);
+static constexpr ValueKey K_WIFI    = VKey(ValueCat::System,  0,1);
+static constexpr ValueKey K_MODE    = VKey(ValueCat::System,  0,2);
+
 Debug debug;
 
 static void build_and_freeze_values() {
@@ -94,7 +103,39 @@ int main()
         screenMgr.update(deltaTimeMS);
 
         // NEW: give the slave a chance to do any polling work (noop if IRQ-only)
-        i2c_common::poll();
+        //i2c_common::poll();
+
+
+        #if TEST_LOCAL_VS_WRITES
+        {
+            static uint32_t tick_ms = 0;
+            tick_ms += deltaTimeMS;                 // you already compute deltaTimeMS each loop
+            if (tick_ms >= 1000) {                  // every 1s
+                tick_ms = 0;
+
+                static bool     wifi = false;
+                static int      mode = 0;           // 0..2
+                static uint32_t kb   = 0x00000001;  // walking bit
+
+                auto& vs = ValueStore::instance();
+                if (vs.frozen()) {
+                    // Use your shared demo keys (from valueStore_demo.h)
+                    vs.setBool(K_WIFI,    wifi);
+                    vs.setInt (K_MODE,    mode);
+                    vs.setU32 (K_KB_MASK, kb);
+
+                    printf("[CORE0] local set: wifi=%d mode=%d kb=0x%08lx\n",
+                        wifi ? 1 : 0, mode, (unsigned long)kb);
+                }
+
+                // advance patterns for next tick
+                wifi = !wifi;
+                mode = (mode + 1) % 3;
+                kb <<= 1;
+                if ((kb & 0xFF) == 0) kb = 0x01;    // keep it in low byte for easy viewing
+            }
+        }
+        #endif
 
         if (screenMgr.needRefresh()) {
             display->clear(0);

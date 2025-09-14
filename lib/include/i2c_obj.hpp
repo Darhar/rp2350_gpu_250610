@@ -10,7 +10,7 @@
 // 5-byte wire shapes (only declare once project-wide)
 struct __attribute__((packed)) VsAddr  { uint8_t cat; uint16_t a; uint16_t b; };
 struct __attribute__((packed)) VsValue { uint8_t type; uint32_t v; };
-
+/*
 class i2cObj {
     public:
         static constexpr size_t MAX_DATA = 32;
@@ -29,6 +29,37 @@ class i2cObj {
             responseSize = 0;
             return nullptr;
         }
+};
+*/
+class i2cObj {
+public:
+    // Match your I2C slave TX buffer size (MAX_BUFFER in i2c_common.cpp).
+    // If MAX_BUFFER is 64 there, make this 64 here too.
+    static constexpr size_t MAX_DATA = 64;
+
+    // Incoming request payload (already copied here by the ctor)
+    uint8_t data[MAX_DATA];
+    size_t  size;
+
+protected:
+    // Outgoing response payload (filled by derived classes)
+    uint8_t resp_[MAX_DATA]{};
+    size_t  rlen_ = 0;   // number of valid bytes in resp_
+
+public:
+    i2cObj(const uint8_t* srcData, size_t len) : size(len) {
+        if (!srcData || len == 0) { size = 0; return; }
+        if (size > MAX_DATA) size = MAX_DATA;      // guard
+        std::memcpy(data, srcData, size);
+    }
+
+    virtual ~i2cObj() = default;
+
+    // Slave handler calls this to fetch the staged reply.
+    virtual const uint8_t* getResponse(size_t& responseSize) {
+        responseSize = rlen_;
+        return rlen_ ? resp_ : nullptr;
+    }
 };
 
 class ScreenChange : public i2cObj {
@@ -158,4 +189,12 @@ class VsStatus : public i2cObj {
         const uint8_t* getResponse(size_t& outLen) override { outLen = 10; return resp_; }
     private:
         uint8_t resp_[10]{};
+};
+
+class DirtyClearAll : public i2cObj {
+    public:
+        DirtyClearAll(ScreenManager* mgr, KeyBoard* kbd, const uint8_t* data, size_t len);
+        const uint8_t* getResponse(size_t& outLen) override { outLen = 1; return &status_; }
+    private:
+        uint8_t status_{0};
 };

@@ -17,7 +17,16 @@ Menu::Menu(const std::string& text, const std::vector<std::string> _its,int _sel
     );
     boundingBox.w = fontWidth*static_cast<int>( it->size() );
 }
-
+void Menu::setValue(int idx) {
+    if (items.empty()) { selectedMenuItem = 0; return; }
+    if (idx < 0) idx = 0;
+    if (idx >= (int)items.size()) idx = (int)items.size() - 1;
+    if (selectedMenuItem != idx) {
+        selectedMenuItem = idx;
+        // optional: trigger a redraw upstream if you have a mechanism
+        // (e.g., ScreenManager::setRefreshRect from the caller)
+    }
+}
 void Menu::draw(Display *disp) const {
     TRACE_CAT(UI,"selected:%d, active:%d",selected,active);
 

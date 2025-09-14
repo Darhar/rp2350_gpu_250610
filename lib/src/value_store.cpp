@@ -1,5 +1,6 @@
 // value_store.cpp
 #include "value_store.h"
+#include"debug.h"
 
 // -------------------------------
 // Singleton
@@ -67,9 +68,9 @@ void ValueStore::freeze() {
     const uint32_t slots  = static_cast<uint32_t>(slots_.size());
     const uint32_t nbanks = (slots + 31u) >> 5;
 
-    versions_.clear();
-    versions_.resize(slots_.size());
-    for (auto& vc : versions_) vc.v.store(0u, std::memory_order_relaxed);
+    //versions_.clear();
+   // versions_.resize(slots_.size());
+    //for (auto& vc : versions_) vc.v.store(0u, std::memory_order_relaxed);
 
     bankDirty_.clear();
     bankDirty_.resize(nbanks);
@@ -78,11 +79,19 @@ void ValueStore::freeze() {
     }
     dirtyBanksMask_.store(0ULL, std::memory_order_relaxed);
     // A4: clear ring + seq
-    ringHead_.store(0u, std::memory_order_relaxed);
+   //ringHead_.store(0u, std::memory_order_relaxed);
     seq_.store(0u, std::memory_order_relaxed);
-    for (auto& a : ring_) a.store(0u, std::memory_order_relaxed);
+    //for (auto& a : ring_) a.store(0u, std::memory_order_relaxed);
 
-
+// allocate atomics without vector/move requirements
+lastWriterCount_ = slots_.size();
+lastWriter_.reset();  // drop any old storage
+if (lastWriterCount_) {
+    lastWriter_.reset(new std::atomic<uint8_t>[lastWriterCount_]);
+    for (std::size_t i = 0; i < lastWriterCount_; ++i) {
+        lastWriter_[i].store((uint8_t)VsOrigin::Unknown, std::memory_order_relaxed);
+    }
+}
 
     frozen_ = true; // keep as plain bool
 }
@@ -108,6 +117,7 @@ const ValueStore::Slot* ValueStore::find(ValueKey key) const noexcept {
 // -------------------------------
 // Steady-state setters
 // -------------------------------
+/*
 bool ValueStore::setBool(ValueKey key, bool v) noexcept {
     if (!frozen_) return false;
 
@@ -123,12 +133,11 @@ bool ValueStore::setBool(ValueKey key, bool v) noexcept {
 
     s.raw.store(new_raw, std::memory_order_release);
     markDirty(idx);
-    versions_[idx].v.fetch_add(1u, std::memory_order_acq_rel);    
-    recordChange(idx);
+    //versions_[idx].v.fetch_add(1u, std::memory_order_acq_rel);    
+    //recordChange(idx);
     //seq_.fetch_add(1, std::memory_order_acq_rel);
     return true;
 }
-
 bool ValueStore::setInt(ValueKey key, int v) noexcept {
     if (!frozen_) return false;
 
@@ -144,15 +153,16 @@ bool ValueStore::setInt(ValueKey key, int v) noexcept {
 
     s.raw.store(new_raw, std::memory_order_release);
     markDirty(idx);
-    versions_[idx].v.fetch_add(1u, std::memory_order_acq_rel);    
-    recordChange(idx);
+    //versions_[idx].v.fetch_add(1u, std::memory_order_acq_rel);    
+    //recordChange(idx);
     //seq_.fetch_add(1, std::memory_order_acq_rel);
     return true;
 }
 
 bool ValueStore::setU32(ValueKey key, uint32_t v) noexcept {
-    if (!frozen_) return false;
+   // TRACE_CAT(VARS, "");
 
+    if (!frozen_) return false;
     auto it = index_.find(key);
     if (it == index_.end()) return false;
     const uint32_t idx = static_cast<uint32_t>(it->second);
@@ -165,10 +175,22 @@ bool ValueStore::setU32(ValueKey key, uint32_t v) noexcept {
 
     s.raw.store(new_raw, std::memory_order_release);
     markDirty(idx);
-    versions_[idx].v.fetch_add(1u, std::memory_order_acq_rel);    
-    recordChange(idx);
+    //versions_[idx].v.fetch_add(1u, std::memory_order_acq_rel);    
+    //recordChange(idx);
     //seq_.fetch_add(1, std::memory_order_acq_rel);
     return true;
+}
+
+*/
+
+bool ValueStore::setBool(ValueKey key, bool v) noexcept {
+    return setBoolFrom(key, v, (uint8_t)VsOrigin::UI_C0);
+}
+bool ValueStore::setInt(ValueKey key, int v) noexcept {
+    return setIntFrom(key, v, (uint8_t)VsOrigin::UI_C0);
+}
+bool ValueStore::setU32(ValueKey key, uint32_t v) noexcept {
+    return setU32From(key, v, (uint8_t)VsOrigin::UI_C0);
 }
 
 
@@ -221,6 +243,7 @@ uint32_t ValueStore::fetchAndClearBank(uint32_t bank) noexcept {
     return old;
 }
 
+/*
 std::size_t ValueStore::copyChangesSince(
     uint32_t lastSeq,
     uint16_t* out, 
@@ -249,6 +272,9 @@ std::size_t ValueStore::copyChangesSince(
     return n;
 }
 
+*/
+
+
 std::optional<uint32_t> ValueStore::indexOf(ValueKey key) const noexcept {
     auto it = index_.find(key);
     if (it == index_.end()) return std::nullopt;
@@ -260,12 +286,14 @@ std::optional<ValueType> ValueStore::typeOf(ValueKey key) const noexcept {
     if (it == index_.end()) return std::nullopt;
     return slots_[it->second].type;
 }
-
+/*
 std::optional<uint32_t> ValueStore::versionOf(ValueKey key) const noexcept {
     auto idx = indexOf(key);
     if (!idx) return std::nullopt;
     return versions_[*idx].v.load(std::memory_order_acquire);
 }
+
+*/
 
 bool ValueStore::slotDirty(uint32_t slotIdx) const noexcept {
     const uint32_t bank = slotIdx >> 5;
@@ -281,3 +309,77 @@ bool ValueStore::clearDirty(ValueKey key) noexcept {
     return clearSlotDirty(*idx);
 }
 
+void ValueStore::clearAllDirty() noexcept {
+    for (auto& b : bankDirty_) {
+        b.mask.store(0u, std::memory_order_relaxed);
+    }
+    dirtyBanksMask_.store(0ULL, std::memory_order_release);
+}
+
+bool ValueStore::setU32From(ValueKey key, uint32_t v, uint8_t origin) noexcept {
+    if (!frozen_) return false;
+
+    auto it = index_.find(key);
+    if (it == index_.end()) return false;
+    const uint32_t idx = static_cast<uint32_t>(it->second);
+    Slot& s = slots_[idx];
+    if (s.type != ValueType::U32) return false;
+
+    const uint32_t new_raw = to_raw_u32(v);
+    const uint32_t old_raw = s.raw.load(std::memory_order_acquire);
+    if (old_raw == new_raw) {
+        // No value change; we *could* still update origin here, but typically we don't.
+        return true;
+    }
+
+    // Publish the new value
+    s.raw.store(new_raw, std::memory_order_release);
+
+    // Mark dirty
+    markDirty(idx);
+
+    // Record the origin (who last changed the slot)
+    lastWriter_[idx].store(origin, std::memory_order_release);
+
+    return true;
+}
+
+bool ValueStore::setIntFrom(ValueKey key, int v, uint8_t origin) noexcept {
+    if (!frozen_) return false;
+    auto it = index_.find(key); if (it == index_.end()) return false;
+    const uint32_t idx = static_cast<uint32_t>(it->second);
+    Slot& s = slots_[idx]; if (s.type != ValueType::Int) return false;
+
+    const uint32_t new_raw = to_raw_int(v);
+    const uint32_t old_raw = s.raw.load(std::memory_order_acquire);
+    if (old_raw == new_raw) return true;
+
+    s.raw.store(new_raw, std::memory_order_release);
+    markDirty(idx);
+    lastWriter_[idx].store(origin, std::memory_order_release);
+    return true;
+}
+
+bool ValueStore::setBoolFrom(ValueKey key, bool v, uint8_t origin) noexcept {
+    if (!frozen_) return false;
+    auto it = index_.find(key); if (it == index_.end()) return false;
+    const uint32_t idx = static_cast<uint32_t>(it->second);
+    Slot& s = slots_[idx]; if (s.type != ValueType::Bool) return false;
+
+    const uint32_t new_raw = to_raw_bool(v);
+    const uint32_t old_raw = s.raw.load(std::memory_order_acquire);
+    if (old_raw == new_raw) return true;
+
+    s.raw.store(new_raw, std::memory_order_release);
+    markDirty(idx);
+    lastWriter_[idx].store(origin, std::memory_order_release);
+    return true;
+}
+
+std::optional<uint8_t> ValueStore::lastWriterOf(ValueKey key) const noexcept {
+    auto it = index_.find(key);
+    if (it == index_.end()) return std::nullopt;
+    const uint32_t idx = (uint32_t)it->second;
+    if (!lastWriter_ || idx >= lastWriterCount_) return std::nullopt;
+    return lastWriter_[idx].load(std::memory_order_acquire);
+}

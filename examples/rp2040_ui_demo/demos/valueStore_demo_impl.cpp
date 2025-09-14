@@ -1,124 +1,268 @@
-#include "valueStore_demo.h"
-#include "screenManager.hpp"        // full type here, not in the header
-#include "i2c_common.h"
-#include "command_factory.hpp"      // for command IDs, if needed
-#include <pico/i2c_slave.h>
 
-// demo-specific screen headers:
+// ---------------- Core-1 (master) demo driver ----------------
+// Drives TestScreen widgets via ValueStore over I²C only.
+// - Edit wid=2 (int) starts at 30, Button wid=3 (bool) starts ON
+// - While TestScreen active: Edit ticks 1/sec; 30..70 sawtooth, Button flips at edges
+// - Adopts user commits immediately, pauses briefly so UI "wins"
+// - Stops when another screen is active; resumes where it left off
+
+#include <cstdint>
+#include <cstdio>
+#include "pico/stdlib.h"
+#include <hardware/i2c.h>
+#include "screenManager.hpp"        // full type here, not in the header
+#include "command_factory.hpp"      // for command IDs, if needed
+#include "i2c_common.h"     // I2C_SLAVE_ADDRESS, pins, baud
+#include "sys_status.hpp"   // SysStat bits (VS_FROZEN, C1_READY, etc.)
+#include <climits>
 #include <testscreen.h>
 #include <menuscreen.h>
 #include <aboutscreen.h>
 #include <settingsscreen.h>
 #include <basicscreen.h>
 #include <splashscreen.h>
-#include "pico/multicore.h"
 
-#include "pico/stdlib.h"
-#include <hardware/i2c.h>
-
-// Keep ScreenManager reference private to this TU
-static ScreenManager* s_mgr = nullptr;
-
-// --- wire helpers ---
-static inline void pack_addr(uint8_t* out, uint8_t cat, uint16_t a, uint16_t b) {
-    out[0] = cat; 
-    out[1] = (uint8_t)(a>>0); out[2] = (uint8_t)(a>>8);
-    out[3] = (uint8_t)(b>>0); out[4] = (uint8_t)(b>>8);
-}
-static inline void pack_val(uint8_t* out, uint8_t type, uint32_t v) {
-    out[0] = type; 
-    out[1] = (uint8_t)(v>>0); out[2] = (uint8_t)(v>>8);
-    out[3] = (uint8_t)(v>>16); out[4] = (uint8_t)(v>>24);
-}
+#define COUNTPACE 1000
 
 namespace vs_demo {
 
-    // ValueStore wire types (must match ValueType)
+    // ---------- Wire types (must match ValueType) ----------
     enum : uint8_t { WT_Nil=0, WT_Bool=1, WT_Int=2, WT_U32=3 };
 
-    void encodeCommand(uint8_t cmdId, uint8_t flags, uint8_t screenId, uint32_t paramBits, uint8_t (&bytes)[4]) {
-        // Apply bit limits
-        cmdId     &= 0x1F;       // 5 bits
-        flags     &= 0x07;       // 3 bits
-        screenId  &= 0x3F;       // 6 bits
-        paramBits &= 0x3FFFF;    // 18 bits
+    // ---------- VSIDs (adjust b-values if your project uses different ones) ----------
+    static constexpr uint8_t  CAT_SYS          = 4;   // ValueCat::System
+    static constexpr uint8_t  CAT_WIDGET       = 0;   // ValueCat::Widget
 
-        // Encode into 32-bit value
-        uint32_t command = (cmdId)
-                            | (flags << 5)
-                            | (screenId << 8)
-                            | (paramBits << 14);
+    static constexpr uint16_t K_SYS_STATUS_A   = 0;
+    static constexpr uint16_t K_SYS_STATUS_B   = 0x30;
 
-        // Split into 4 bytes (big-endian order)
-        bytes[0] = static_cast<uint8_t>(command & 0xFF);
-        bytes[1] = static_cast<uint8_t>((command >> 8) & 0xFF);
-        bytes[2] = static_cast<uint8_t>((command >> 16) & 0xFF);
-        bytes[3] = static_cast<uint8_t>((command >> 24) & 0xFF);
+    static constexpr uint16_t K_ACTIVE_SCR_A   = 0;
+    static constexpr uint16_t K_ACTIVE_SCR_B   = 12;
+
+    static constexpr uint16_t K_UI_COMMIT_A    = 0;
+    static constexpr uint16_t K_UI_COMMIT_B    = 50;
+
+    // TestScreen widget IDs (adjust if different)
+    static constexpr uint16_t SID_TEST         = 1;   // ScreenEnum::TESTSCREEN
+    static constexpr uint16_t WID_EDIT         = 2;
+    static constexpr uint16_t WID_BTN          = 3;
+
+    // ---------- Demo state ----------
+    static int      g_edit          = 30;       // starts at 30
+    static bool     g_btn           = true;     // ON means count up
+    static uint32_t g_ver_edit      = 0;
+    static uint32_t g_ver_btn       = 0;
+    static int      g_last_sent_edit= INT_MIN;
+    static int      g_last_sent_btn = -1;
+
+    static uint32_t g_last_ui_commit= 0;
+    static uint32_t g_hold_until_ms = 0;        // quiet window after user commit
+    static uint32_t g_last_tick_ms  = 0;        // 1 Hz pacing
+
+    // ---------- Command header encoder (matches your existing 32-bit header layout) ----------
+    static inline void encodeCommand(uint8_t cmdId, uint8_t flags, uint8_t screenId, uint32_t paramBits, uint8_t(&bytes)[4]) {
+        cmdId     &= 0x1F;    // 5 bits
+        flags     &= 0x07;    // 3 bits
+        screenId  &= 0x3F;    // 6 bits
+        paramBits &= 0x3FFFF; // 18 bits
+        const uint32_t u = (uint32_t)cmdId | ((uint32_t)flags << 5) | ((uint32_t)screenId << 8) | (paramBits << 14);
+        bytes[0] = (uint8_t)(u >> 0);
+        bytes[1] = (uint8_t)(u >> 8);
+        bytes[2] = (uint8_t)(u >> 16);
+        bytes[3] = (uint8_t)(u >> 24);
     }
 
-    // --- send SET: header + addr(5) + val(5) in ONE write (14 bytes) ---
-    static bool vs_set_w(uint8_t cat, uint16_t a, uint16_t b, uint8_t type, uint32_t v) {
-        uint8_t frame[4 + 5 + 5]; uint8_t* p = frame;
+    // ---------- Low-level I2C helpers ----------
+    static inline uint32_t now_ms() { return to_ms_since_boot(get_absolute_time()); }
+
+    static bool read_ack(uint8_t& out_st) {
+        DEBUG_PRINTLN("");
+
         uint8_t hdr[4];
-        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_vs_set), 0, 0, 0, hdr);
-        p[0]=hdr[0]; p[1]=hdr[1]; p[2]=hdr[2]; p[3]=hdr[3]; p+=4;
-        pack_addr(p, cat, a, b); p+=5;
-        pack_val (p, type, v);   p+=5;
-        int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), /*nostop=*/false);
+        encodeCommand((uint8_t)i2cCmnds::i2c_ack, 0, 0, 0, hdr);
+        if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, hdr, 4, false) != 4) return false;
+        return i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, &out_st, 1, false) == 1;
+    }
+
+    // set widget values in VS
+    // SET: [header(i2c_vs_set)=4] + [addr=5] + [val=5]
+    static bool vs_set_w(uint8_t cat, uint16_t a, uint16_t b, uint8_t type, uint32_t v) {
+        uint8_t hdr[4]; 
+        encodeCommand((uint8_t)i2cCmnds::i2c_vs_set, 0, 0, 0, hdr);
+        uint8_t frame[4+5+5] = {
+            hdr[0],hdr[1],hdr[2],hdr[3],
+            cat,    (uint8_t)(a>>0),
+                    (uint8_t)(a>>8),
+                    (uint8_t)(b>>0),
+                    (uint8_t)(b>>8),
+            type,   (uint8_t)(v>>0),
+                    (uint8_t)(v>>8),
+                    (uint8_t)(v>>16),
+                    (uint8_t)(v>>24)
+        };
+        int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), false);
         return w == (int)sizeof(frame);
     }
 
-    // --- send GET: write [header+addr] (9 bytes), then read 5 bytes reply ---
-    static bool vs_get_r(uint8_t cat, uint16_t a, uint16_t b, uint8_t& outType, uint32_t& outVal) {
-        uint8_t frame[4 + 5]; uint8_t* p = frame;
-        uint8_t hdr[4];
-        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_vs_get), 0, 0, 0, hdr);
-        p[0]=hdr[0]; p[1]=hdr[1]; p[2]=hdr[2]; p[3]=hdr[3]; p+=4;
-        pack_addr(p, cat, a, b); p+=5;
+    // STATUS: [header(i2c_vs_status)=4] + [addr=5] + [options=1] → read 10B (type,u32,val,ver,dirty)
+    //return true if successfully sent and rec status command
 
-        int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), /*nostop=*/false);
-        if (w != (int)sizeof(frame)) return false;
-
-        uint8_t resp[5]{};
-        int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, resp, sizeof(resp), /*nostop=*/false);
-        if (r != (int)sizeof(resp)) return false;
-
-        outType = resp[0];
-        outVal  = (uint32_t)resp[1] | ((uint32_t)resp[2] << 8)
-                | ((uint32_t)resp[3] << 16) | ((uint32_t)resp[4] << 24);
+    static bool vs_status(uint8_t cat, uint16_t a, uint16_t b,
+                        uint8_t& out_type, uint32_t& out_val,
+                        uint32_t& out_ver, uint8_t& out_dirty,
+                        uint8_t& out_origin,
+                        bool clearDirty=false)
+    {
+        uint8_t hdr[4]; 
+        uint8_t rx[10]{}; // type(1)+val(4)+ver(4)+dirty(1)
+        encodeCommand((uint8_t)i2cCmnds::i2c_vs_status, 0, 0, 0, hdr);
+        uint8_t tx[4+6] = {
+            hdr[0],hdr[1],hdr[2],hdr[3],
+            cat,(uint8_t)(a>>0),
+                (uint8_t)(a>>8),
+                (uint8_t)(b>>0),
+                (uint8_t)(b>>8),
+                (uint8_t)(clearDirty ? 1 : 0)
+        };
+        if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, tx, sizeof(tx), false) != (int)sizeof(tx)){
+            printf("[c1] vs_status: couldnt write i2c");
+          return false;  
+        } 
+        if (i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, rx, sizeof(rx), false) != (int)sizeof(rx)){
+            printf("[c1] vs_status: couldnt resd i2c");
+            return false;
+        } 
+        //set by reference
+        out_type  = rx[0];
+        out_val   = (uint32_t)rx[1] | ((uint32_t)rx[2]<<8) | ((uint32_t)rx[3]<<16) | ((uint32_t)rx[4]<<24);
+        out_ver   = (uint32_t)rx[5] | ((uint32_t)rx[6]<<8) | ((uint32_t)rx[7]<<16) | ((uint32_t)rx[8]<<24);
+        // was: out_dirty = rx[9] & 0x01;
+        out_dirty = rx[9] & 0x01;
+        uint8_t origin = rx[9] >> 1;          // 0=Unknown, 1=UI_C0, 2=MASTER_C1, ...
+        out_origin = rx[9] >> 1;
         return true;
     }
 
-
-    static void checkVS() {
-        // Demo pattern
-        static uint32_t kb = 0x00000001;
-        static bool     wifi = false;
-        static int32_t  mode = 0;
-
-        // 1) Push three values
-        bool ok_kb   = vs_set_w(static_cast<uint8_t>(ValueCat::Keyboard), 0, 0, WT_U32, kb);
-        bool ok_wifi = vs_set_w(static_cast<uint8_t>(ValueCat::System),   0, 1, WT_Bool, wifi ? 1u : 0u);
-        bool ok_mode = vs_set_w(static_cast<uint8_t>(ValueCat::System),   0, 2, WT_Int,  (uint32_t)mode);
-
-        // 2) Read one back to verify end-to-end
-        uint8_t  t=0; uint32_t v=0; bool okr = vs_get_r(static_cast<uint8_t>(ValueCat::System), 0, 2, t, v);
-
-        printf("[CORE1] VS set: kb=0x%08lx wifi=%d mode=%ld  (%c%c%c)  get(mode)=(t=%u v=%ld) %c\n",
-            (unsigned long)kb, wifi?1:0, (long)mode,
-            ok_kb?'K':'k', ok_wifi?'W':'w', ok_mode?'M':'m',
-            (unsigned)t, (long)(int32_t)v, okr?'Y':'N');
-
-        // advance pattern
-        kb <<= 1; if (kb == 0 || kb > 0x00000080) kb = 0x00000001;
-        wifi = !wifi;
-        mode = (mode + 1) % 3;
+    static bool get_sys_status_u32(uint32_t& out_status) {
+        uint8_t t=0, d=0, origin=0; 
+        uint32_t v=0, ver=0;
+        //get status
+        if (!vs_status(CAT_SYS, K_SYS_STATUS_A, K_SYS_STATUS_B, t, v, ver, origin,d)) return false;
+        if (t != WT_U32) return false;
+        out_status = v;
+        return true;
     }
 
-    void bind(ScreenManager& mgr) { s_mgr = &mgr; }
+    // Restrict writes to C1-owned bits
+    static bool set_c1_bits(uint32_t set_mask, uint32_t clear_mask) {
+        uint32_t s=0; 
+        if (!get_sys_status_u32(s)) return false;
+        s &= ~clear_mask;
+        s |= (set_mask & SysStat::OWNED_BY_C1);
+        return vs_set_w(CAT_SYS, K_SYS_STATUS_A, K_SYS_STATUS_B, WT_U32, s);
+    }
 
+    static void getCommit() {
+        //DEBUG_PRINTLN("");
+
+        uint8_t t=0,d=0, origin=0; 
+        uint32_t v=0,ver=0;
+        //get commit
+        if (!vs_status(CAT_SYS, K_UI_COMMIT_A, K_UI_COMMIT_B, t, v, ver, origin,d)) return;
+        if (v == g_last_ui_commit) return;        // no new commit
+        g_last_ui_commit = v;
+
+        // Adopt both widgets now
+        d=0; 
+        v=0;
+        //get edit widget
+        if (vs_status(CAT_WIDGET, SID_TEST, WID_EDIT, t, v, ver, origin,d,true)) {
+            g_edit     = (int)v;
+            printf("[DRV] ADOPT(edit) val=%d dirty=%u\n", g_edit, (unsigned)d);
+        }
+        // BTN
+        d=0; 
+        v=0;
+        //get button widget
+        if (vs_status(CAT_WIDGET, SID_TEST, WID_BTN, t, v, ver, origin,d,true)) {
+            g_btn     = (v != 0);
+            printf("[DRV] ADOPT(btn) val=%u dirty=%u\n", (unsigned)g_btn, (unsigned)d);
+        }
+
+        // Hold off our writes briefly so the UI's value wins visually
+        g_hold_until_ms = now_ms() + 350;
+        // printf("[DRV] UI_COMMIT=%lu adopt edit=%d btn=%u\n", (unsigned long)v, g_edit, (unsigned)g_btn);
+    }
+
+
+    // ---------- 1Hz driver, gated by active screen ----------
+    static void run_master() {
+
+        uint8_t t=0,d=0, origin=0; 
+        uint32_t v=0,ver=0;
+        
+        // get active screen
+        if (!vs_status(CAT_SYS, K_ACTIVE_SCR_A, K_ACTIVE_SCR_B, t, v, ver,origin, d) || t != WT_U32) return;
+        if (v == !SID_TEST) return;
+        v=0;
+        //get commit
+        if (!vs_status(CAT_SYS, K_UI_COMMIT_A, K_UI_COMMIT_B, t, v, ver, origin,d))return;    
+
+        if (v != g_last_ui_commit){// new commit
+    
+            g_last_ui_commit = v;
+            // Adopt both widgets
+            d=0; 
+            v=0;
+            //get edit widget
+            if (vs_status(CAT_WIDGET, SID_TEST, WID_EDIT, t, v, ver, origin,d,true)) {
+                g_edit     = (int)v;
+                printf("[DRV] ADOPT(edit) val=%d dirty=%u\n", g_edit, (unsigned)d);
+            }
+
+            d=0; 
+            v=0;
+            //get button widget
+            if (vs_status(CAT_WIDGET, SID_TEST, WID_BTN, t, v, ver, origin,d,true)) {
+                g_btn     = (v != 0);
+                printf("[DRV] ADOPT(btn) val=%u dirty=%u\n", (unsigned)g_btn, (unsigned)d);
+            }
+
+            // Hold off our writes briefly so the UI's value wins visually
+            g_hold_until_ms = now_ms() + 350;
+            // printf("[DRV] UI_COMMIT=%lu adopt edit=%d btn=%u\n", (unsigned long)v, g_edit, (unsigned)g_btn);
+
+        }        
+
+        const uint32_t now = now_ms();
+        if (now < g_hold_until_ms) return;            
+
+
+        //Pace
+        if (now - g_last_tick_ms < COUNTPACE) return;
+        g_last_tick_ms = now;
+
+        //
+        g_edit += (g_btn ? +1 : -1);
+        if (g_edit > 70) { g_edit = 70; g_btn = false; }
+        if (g_edit < 30) { g_edit = 30; g_btn = true;  }
+
+        if (g_edit != g_last_sent_edit) {
+            if (vs_set_w(CAT_WIDGET, SID_TEST, WID_EDIT, WT_Int, (uint32_t)g_edit)) {
+                g_last_sent_edit = g_edit;
+            }
+        }
+
+        const int b = g_btn ? 1 : 0;
+        if (b != g_last_sent_btn) {
+            if (vs_set_w(CAT_WIDGET, SID_TEST, WID_BTN, WT_Bool, (uint32_t)b)) {
+                g_last_sent_btn = b;
+            }
+        }
+    }
+
+    // ---------- Public entry points ----------
     void setup_master() {
-        // set up i2c1 as master (dev only)
         gpio_init(I2C_MASTER_SDA_PIN);
         gpio_set_function(I2C_MASTER_SDA_PIN, GPIO_FUNC_I2C);
         gpio_pull_up(I2C_MASTER_SDA_PIN);
@@ -130,397 +274,45 @@ namespace vs_demo {
         i2c_init(i2c1, I2C_BAUDRATE);
     }
 
-    // Same packed shape used on the slave
-    struct __attribute__((packed)) KeyReport {
-        uint8_t  key;        // 0..5
-        uint8_t  stateBits;  // bit0 = DOWN
-        uint8_t  edgeBits;   // bit0 = PRESS, bit1 = RELEASE (latched; cleared on read)
-        uint8_t  analog;     // adc_read()/50 bucket
-        uint32_t eventCount; // increments on edges
-    };
-
-    void checkKeys(){
-        if (!s_mgr) return;
-
-        // Build the 4-byte "get keyboard" command
-        uint8_t cmd[4];
-        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_getKb), /*flags=*/0, /*screenId=*/0, /*paramBits=*/0, cmd);
-
-        // Track last printed state
-        static bool       havePrev = false;
-        static KeyReport  prev{};
-
-        // Poll quickly here; core1_entry already throttles outer loop if you want
-        for (int i = 0; i < 100; ++i) {
-            // 1) WRITE: send command and finish with STOP so slave stages reply on FINISH
-            int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, cmd, sizeof(cmd), /*nostop=*/false);
-            if (w != (int)sizeof(cmd)) {
-                // Only print write errors if we never printed one before to avoid spam
-                static bool wroteErr = false;
-                if (!wroteErr) {
-                    DEBUG_PRINTLN("i2c write failed: %d", w);
-                    wroteErr = true;
-                }
-                sleep_ms(200);
-                continue;
-            }
-
-            // Tiny gap—usually safe without, but harmless
-            sleep_us(1000);
-
-            // 2) READ: fetch the 8-byte KeyReport
-            KeyReport rep{};
-            int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS,
-                                    reinterpret_cast<uint8_t*>(&rep), sizeof(rep),
-                                    /*nostop=*/false);
-            if (r != (int)sizeof(rep)) {
-                static bool readErr = false;
-                if (!readErr) {
-                    DEBUG_PRINTLN("i2c read failed: rc=%d", r);
-                    readErr = true;
-                }
-                sleep_ms(200);
-                continue;
-            }
-
-            // Decide if we should print:
-            // - Always print first sample
-            // - Print on any edge (PRESS/RELEASE)
-            // - Print if key index changed
-            // - Print if DOWN bit changed
-            // - Optionally print analog changes when no key is down (filter small jitter)
-            bool changed = false;
-
-            if (!havePrev) {
-                changed = true;
-            } else {
-                const bool downNow  = (rep.stateBits & 0x01) != 0;
-                const bool downPrev = (prev.stateBits & 0x01) != 0;
-
-                if (rep.edgeBits != 0)                changed = true;                 // an edge happened
-                else if (rep.key != prev.key)         changed = true;                 // different key bucket
-                else if (downNow != downPrev)         changed = true;                 // up/down flipped
-                else if (!downNow) {
-                    // Only when idle: print if analog bucket moved significantly
-                    // (1 bucket step can be noise; require >=2 steps)
-                    uint8_t d = (rep.analog > prev.analog) ? (rep.analog - prev.analog)
-                                                        : (prev.analog - rep.analog);
-                    if (d >= 2) changed = true;
-                }
-            }
-
-            if (changed) {
-                const bool down = (rep.stateBits & 0x01) != 0;
-                // Friendly edge text
-                const bool pressed  = (rep.edgeBits & 0x01) != 0;
-                const bool released = (rep.edgeBits & 0x02) != 0;
-
-                if (pressed || released) {
-                    DEBUG_PRINTLN("KB edge: key=%u pressed=%u released=%u analog=%u events=%lu",
-                                rep.key, pressed ? 1 : 0, released ? 1 : 0,
-                                rep.analog, (unsigned long)rep.eventCount);
-                } else if (down) {
-                    DEBUG_PRINTLN("KB hold: key=%u analog=%u events=%lu",
-                                rep.key, rep.analog, (unsigned long)rep.eventCount);
-                } else {
-                    DEBUG_PRINTLN("KB idle: analog=%u events=%lu",
-                                rep.analog, (unsigned long)rep.eventCount);
-                }
-
-                prev = rep;
-                havePrev = true;
-            }
-
-            sleep_ms(50); // poll period; tweak as needed
-        }
-    }
-
-    static bool request_ack(uint8_t& out_status) {
-        uint8_t hdr[4];
-        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_ack), /*flags*/0, /*screenId*/0, /*paramBits*/0, hdr);
-
-        int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, hdr, sizeof(hdr), /*nostop=*/false);
-        if (w != (int)sizeof(hdr)) return false;
-
-        uint8_t st = 0xFF;
-        int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, &st, 1, /*nostop=*/false);
-        if (r != 1) return false;
-
-        out_status = st;
-        return true;
-    }
-
-    static void checkAck() {
-        for (int i = 0; i < 10; ++i) {
-            uint8_t st = 0xFF;
-            bool ok = request_ack(st);
-            if (!ok) {
-                DEBUG_PRINTLN("ACK: write/read failed");
-            } else {
-                // Decode bits: 0=alive,1=vsFrozen,2=hasMgr,3=hasKbd,4=rxOverflow (optional)
-                DEBUG_PRINTLN("ACK: 0x%02X  alive=%u vsFrozen=%u mgr=%u kbd=%u ovf=%u",
-                            st, (st>>0)&1, (st>>1)&1, (st>>2)&1, (st>>3)&1, (st>>4)&1);
-            }
-            sleep_ms(500);
-        }
-    }
-    static bool read_ack(uint8_t& out) {
-        uint8_t hdr[4];
-        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_ack), 0, 0, 0, hdr);
-        if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, hdr, sizeof(hdr), false) != 4) return false;
-        return i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, &out, 1, false) == 1;
-    }
-
-    static void checkAck_A1_once(const char* tag) {
-        uint8_t st=0;
-        if (read_ack(st)) {
-            printf("%s: ACK: 0x%02X  alive=%u vsFrozen=%u mgr=%u kbd=%u ovf=%u anyDirty=%u\n",
-                tag, st, (st>>0)&1, (st>>1)&1, (st>>2)&1, (st>>3)&1, (st>>4)&1, (st>>5)&1);
-        } else {
-            printf("%s: ACK read failed\n", tag);
-        }
-    }
-    static bool dirty_summary(uint8_t (&out)[8]) {
-        uint8_t hdr[4];
-        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_dirty_summary), 0, 0, 0, hdr);
-        if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, hdr, sizeof(hdr), false) != 4) return false;
-        return i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, out, 8, false) == 8;
-    }
-
-    static void checkDirtySummary() {
-        uint8_t s[8]{};
-        if (!dirty_summary(s)) { printf("dirty_summary: read failed\n"); return; }
-        const uint8_t flags = s[0];
-        const uint8_t bw    = s[1];
-        const uint8_t nb    = s[2];
-        const uint8_t fdb   = s[3];
-        const uint32_t seq  = (uint32_t)s[4] | ((uint32_t)s[5] << 8) | ((uint32_t)s[6] << 16) | ((uint32_t)s[7] << 24);
-
-        printf("DIRSUM: flags=0x%02X anyDirty=%u bw=%u nb=%u firstDirtyBank=%u seq=%lu\n",
-            flags, (flags>>5)&1, bw, nb, (unsigned)fdb, (unsigned long)seq);
-    }
-
-    
-    static bool dirty_bank_req(uint8_t bank, uint8_t options, uint32_t& outMask) {
-        uint8_t hdr[4];
-        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_dirty_bank), 0, 0, 0, hdr);
-
-        uint8_t frame[6] = { hdr[0], hdr[1], hdr[2], hdr[3], bank, options };
-        int w = i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), false);
-        if (w != (int)sizeof(frame)) return false;
-
-        uint8_t resp[4]{};
-        int r = i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, resp, sizeof(resp), false);
-        if (r != 4) return false;
-
-        outMask = (uint32_t)resp[0] | ((uint32_t)resp[1] << 8) |
-                ((uint32_t)resp[2] << 16) | ((uint32_t)resp[3] << 24);
-        return true;
-    }
-
-    static void test_dirty_bank_once() {
-        // 1) Summary (see which bank to hit)
-        uint8_t sum[8]{};
-        if (!dirty_summary(sum)) { printf("DIRSUM read failed\n"); return; }
-        const uint8_t fdb = sum[3];
-        const uint8_t anyDirty = (sum[0] >> 5) & 1;
-        printf("DIRSUM: anyDirty=%u firstDirtyBank=%u seq=%lu\n",
-            anyDirty, (unsigned)fdb,
-            (unsigned long)((uint32_t)sum[4] | ((uint32_t)sum[5] << 8) | ((uint32_t)sum[6] << 16) | ((uint32_t)sum[7] << 24)));
-
-        if (fdb == 0xFF) return;
-
-        // 2) Fetch & CLEAR that bank
-        uint32_t mask = 0;
-        if (dirty_bank_req(fdb, /*CLEAR*/1, mask)) {
-            printf("DIRBANK: bank=%u mask=0x%08lx (cleared)\n", (unsigned)fdb, (unsigned long)mask);
-        } else {
-            printf("DIRBANK: request failed\n");
-        }
-
-        // 3) ACK should go low if no new writes arrived
-        uint8_t st=0;
-        if (read_ack(st)) {
-            printf("ACK: 0x%02X anyDirty=%u\n", st, (st>>5)&1);
-        }
-    }
-
-    static bool changes_since_req(uint32_t lastSeq, uint8_t maxN,
-                                uint32_t& curSeq, uint8_t& flags,
-                                std::vector<uint16_t>& outSlots)
-    {
-        uint8_t hdr[4];
-        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_changes_since), 0, 0, 0, hdr);
-
-        uint8_t frame[4 + 5] = {
-            hdr[0], hdr[1], hdr[2], hdr[3],
-            (uint8_t)(lastSeq >> 0), (uint8_t)(lastSeq >> 8),
-            (uint8_t)(lastSeq >> 16), (uint8_t)(lastSeq >> 24),
-            maxN
-        };
-
-        if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), false) != (int)sizeof(frame))
-            return false;
-
-        // Read header first (curSeq, flags, count)
-        uint8_t head[6]{};
-        if (i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, head, sizeof(head), false) != (int)sizeof(head))
-            return false;
-
-        curSeq = (uint32_t)head[0] | ((uint32_t)head[1] << 8) |
-                ((uint32_t)head[2] << 16) | ((uint32_t)head[3] << 24);
-        flags  = head[4];
-        const uint8_t count = head[5];
-
-        outSlots.clear();
-        if (count == 0) return true;
-
-        // Now read the slots (2*count bytes)
-        std::vector<uint8_t> buf(2 * count);
-        if (i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, buf.data(), (int)buf.size(), false) != (int)buf.size())
-            return false;
-
-        outSlots.reserve(count);
-        for (uint8_t i = 0; i < count; ++i) {
-            uint16_t s = (uint16_t)buf[i*2 + 0] | ((uint16_t)buf[i*2 + 1] << 8);
-            outSlots.push_back(s);
-        }
-        return true;
-    }
-
-    static void checkRing() {
-        static uint32_t lastSeq = 0;
-
-        uint32_t curSeq = 0;
-        uint8_t  flags  = 0;
-        std::vector<uint16_t> slots;
-        if (!changes_since_req(lastSeq, /*maxN*/8, curSeq, flags, slots)) {
-            printf("CHGSINCE: read failed\n"); return;
-        }
-
-        const bool overflow = (flags & 0x01) != 0;
-        printf("CHGSINCE: last=%lu -> cur=%lu overflow=%u count=%u\n",
-            (unsigned long)lastSeq, (unsigned long)curSeq, overflow ? 1 : 0, (unsigned)slots.size());
-        for (auto s : slots) {
-            printf("  slot=%u\n", (unsigned)s);
-        }
-        lastSeq = curSeq;
-    }
-
-    static bool vs_status_req(uint8_t cat, uint16_t a, uint16_t b, uint8_t options,
-                            uint8_t& type, uint32_t& val, uint32_t& ver, uint8_t& dirty)
-    {
-        uint8_t hdr[4];
-        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_vs_status), 0, 0, 0, hdr);
-
-        uint8_t frame[4 + 6] = {
-            hdr[0], hdr[1], hdr[2], hdr[3],
-            cat,
-            (uint8_t)(a & 0xFF), (uint8_t)(a >> 8),
-            (uint8_t)(b & 0xFF), (uint8_t)(b >> 8),
-            options
-        };
-
-        if (i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, frame, sizeof(frame), false) != (int)sizeof(frame))
-            return false;
-
-        uint8_t resp[10]{};
-        if (i2c_read_blocking(i2c1, I2C_SLAVE_ADDRESS, resp, sizeof(resp), false) != (int)sizeof(resp))
-            return false;
-
-        type  = resp[0];
-        val   = (uint32_t)resp[1] | ((uint32_t)resp[2] << 8) |
-                ((uint32_t)resp[3] << 16) | ((uint32_t)resp[4] << 24);
-        ver   = (uint32_t)resp[5] | ((uint32_t)resp[6] << 8) |
-                ((uint32_t)resp[7] << 16) | ((uint32_t)resp[8] << 24);
-        dirty = resp[9];
-        return true;
-    }
-
-    static void test_vs_status_once(bool clearBit) {
-        uint8_t type=0, dirty=0;
-        uint32_t val=0, ver=0;
-
-        // Query System,0,2 (your MODE) — adjust if you like
-        const uint8_t cat = static_cast<uint8_t>(ValueCat::System);
-        const uint16_t a = 0, b = 2;
-        uint8_t opts = clearBit ? 0x01 : 0x00;
-
-        if (vs_status_req(cat, a, b, opts, type, val, ver, dirty)) {
-            printf("VS_STATUS: (cat=%u,%u,%u) type=%u val=%lu ver=%lu dirty=%u%s\n",
-                (unsigned)cat, (unsigned)a, (unsigned)b,
-                (unsigned)type, (unsigned long)val, (unsigned long)ver,
-                (unsigned)dirty, clearBit ? " (CLEARED)" : "");
-        } else {
-            printf("VS_STATUS: request failed\n");
-        }
-    }
-
-
-    void run_master() {
-        uint8_t sum[8]{};
-        dirty_summary(sum);
-        uint8_t fdb = sum[3];
-        printf("DIRSUM: anyDirty=%u firstDirtyBank=%u seq=%lu\n",
-            (sum[0]>>5)&1, (unsigned)fdb,
-            (unsigned long)((uint32_t)sum[4] | ((uint32_t)sum[5]<<8) |
-                            ((uint32_t)sum[6]<<16) | ((uint32_t)sum[7]<<24)));
-        test_vs_status_once(false);
-        test_vs_status_once(true);
-        {
-            uint8_t sum2[8]{};
-            if (dirty_summary(sum2)) {
-                const bool anyDirty2 = ((sum2[0] >> 5) & 1) != 0;
-                const uint8_t fdb2   = sum2[3];
-                if (anyDirty2 && fdb2 != 0xFF) {
-                    uint32_t mask = 0;
-                    if (dirty_bank_req(fdb2, /*CLEAR*/1, mask)) {
-                        printf("BANK CLEAR: bank=%u mask=0x%08lx\n",
-                            (unsigned)fdb2, (unsigned long)mask);
-                    }
-                }
-            }
-        }
-
-        uint8_t ack=0; read_ack(ack);
-        printf("ACK: 0x%02X anyDirty=%u\n", ack, (ack>>5)&1);
-        checkKeys();
-    }
-
-    void run_master_orig() {
-        if (!s_mgr) return;
-
-        uint8_t buffer[4];
-        //encodeCommand(cmdId,flags,screenId,paramBits, uint8_t (&bytes)[4])
-        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_scrCng), 0, 2, 0x12345, buffer);
-        DEBUG_PRINTLN("run_master sending %d bytes\n",sizeof(buffer));
-        i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, buffer, 4, false);
-        sleep_ms(1000);
-        encodeCommand(static_cast<uint8_t>(i2cCmnds::i2c_scrCng), 0, 1, 0x12345, buffer);
-        i2c_write_blocking(i2c1, I2C_SLAVE_ADDRESS, buffer, 4, false);
-        sleep_ms(10000);
-    }
-
     void core1_entry() {
-        // Handshake exactly like your old version
-        multicore_fifo_push_blocking(FLAG_VALUE);
-        uint32_t g = multicore_fifo_pop_blocking();
+        DEBUG_PRINTLN("");
+        printf("Core 1 up\n");
 
-        sleep_ms(200);
-        if (g != FLAG_VALUE)
-            printf("Problem with core 1!\n");
-        else
-            printf("Core 1 up\n");
+        // Peek ACK once (optional sanity)
+        if (uint8_t ack; read_ack(ack)) {
+            printf("[C1] first ACK=0x%02X (frozen=%u)\n", ack, (ack>>5)&1);
+        }
 
-        while (true) {
-            run_master();       // your dev traffic
-            // you can also peek s_mgr->getActiveScreen() if you kept a pointer
-            //sleep_ms(5000);
+        // Wait until Core-0 seeds SYS_STATUS with VS_FROZEN
+        for (;;) {
+            uint32_t s=0;
+            bool ok = get_sys_status_u32(s);
+            if (ok && (s & SysStat::VS_FROZEN)) break;
+            sleep_ms(100);
+        }
+
+        // Mark C1 ready (optional)
+        (void)set_c1_bits(SysStat::C1_READY, 0);
+
+        // Seed initial requested values once (Edit=30, Btn=ON)
+        (void)vs_set_w(CAT_WIDGET, SID_TEST, WID_EDIT, WT_Int,  30);
+        (void)vs_set_w(CAT_WIDGET, SID_TEST, WID_BTN,  WT_Bool, 1);
+        g_edit = 30; g_btn = true;
+        g_last_sent_edit = INT_MIN; // force send if needed
+        g_last_sent_btn  = -1;
+        printf("[c1] start loop\n");
+
+        // Loop
+        for (;;) {
+            (void)set_c1_bits(SysStat::C1_BUSY, 0);
+            run_master();
+            (void)set_c1_bits(0, SysStat::C1_BUSY);
+            (void)set_c1_bits(SysStat::LINK_OK, 0);
+            sleep_ms(20); // ~50 Hz housekeeping; driver is 1 Hz internally
         }
     }
 
-} // namespace ui_demo
-
+} // namespace vs_demo
 void registerAllScreens(ScreenManager& mgr) {
     mgr.registerScreen(ScreenEnum::MENUSCREEN,     [&mgr]{ return new MenuScreen(mgr); });
     mgr.registerScreen(ScreenEnum::TESTSCREEN,     [&mgr]{ return new TestScreen(mgr); });
@@ -529,3 +321,4 @@ void registerAllScreens(ScreenManager& mgr) {
     mgr.registerScreen(ScreenEnum::BASICSCREEN,    [&mgr]{ return new BasicScreen(mgr); });
     mgr.registerScreen(ScreenEnum::SPLASHSCREEN,   [&mgr]{ return new SplashScreen(mgr); });
 }
+

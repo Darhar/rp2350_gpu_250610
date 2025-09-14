@@ -10,7 +10,7 @@ AboutScreen::AboutScreen(ScreenManager& mgr) : Screen(mgr, ScreenEnum::ABOUTSCRE
 
 AboutScreen::~AboutScreen() {}
 
-void AboutScreen::update(uint16_t deltaTimeMS) {
+void AboutScreen::onUpdate(uint16_t deltaTimeMS) {
     uint16_t timeDiff = getTimeDiffMS(lastUpdate);
     if(timeDiff > 100) {
         scroll+=1;
@@ -43,7 +43,7 @@ void AboutScreen::draw(Display *display) {
 
 int AboutScreen::keyPressed(uint8_t key) {
     if(key == KEY_BACK){
-        return encodeKeyReturn(KeyReturn::SCRSELECT, ScreenEnum::MENUSCREEN);
+        return encodeKeyReturn(KeyReturn::SCRSELECT, static_cast<uint8_t>(ScreenEnum::MENUSCREEN));
     }
     return 0;
 }

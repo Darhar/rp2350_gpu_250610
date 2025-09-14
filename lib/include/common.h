@@ -33,6 +33,7 @@
 	#include "term6x9_font.h"
 	#include "image.h"
 	#include "Sprite.h"
+	//#include "screen.h"
 
 	timetype getTime();
 	uint16_t getTimeDiffMS(timetype start);
@@ -57,6 +58,21 @@
 	static const uint I2C_MASTER_SDA_PIN = 26;
 	static const uint I2C_MASTER_SCL_PIN = 27;
 
+enum class ScreenEnum : uint16_t;
 
+namespace util {
+	inline uint8_t to_screen_id_6(ScreenEnum e) {
+		using U = std::underlying_type_t<ScreenEnum>;
+		return static_cast<uint8_t>(static_cast<U>(e) & 0x3F); // 6-bit payload
+	}
 
+	inline ScreenEnum from_screen_id_6(uint8_t id) {
+		using U = std::underlying_type_t<ScreenEnum>;
+		return static_cast<ScreenEnum>(static_cast<U>(id & 0x3F));
+	}
+} // namespace util
+inline uint8_t to_screen_id_6(ScreenEnum e) {
+    using U = std::underlying_type_t<ScreenEnum>;
+    return static_cast<uint8_t>(static_cast<U>(e) & 0x3F);
+}
 #endif

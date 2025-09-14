@@ -19,7 +19,7 @@ SplashScreen::~SplashScreen() {
     printf("[SplashScreen] Destructing\n");
 }
 
-void SplashScreen::update(uint16_t deltaTimeMS) {
+void SplashScreen::onUpdate(uint16_t deltaTimeMS) {
 
     //duration += deltaTimeMS;
     accDeltaTimeMS += deltaTimeMS;
@@ -69,7 +69,7 @@ void SplashScreen::draw(Display *display) {
 
 int SplashScreen::keyPressed(uint8_t key) {
     if(key == KEY_BACK){
-        return encodeKeyReturn(KeyReturn::SCRSELECT, ScreenEnum::MENUSCREEN);
+        return encodeKeyReturn(KeyReturn::SCRSELECT, static_cast<uint8_t>(ScreenEnum::MENUSCREEN));
     }
     return 0;
 }

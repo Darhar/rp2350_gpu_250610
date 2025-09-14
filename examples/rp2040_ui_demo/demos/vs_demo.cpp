@@ -27,6 +27,7 @@ int main()
     uint32_t msSinceBoot = to_ms_since_boot(get_absolute_time());
     timetype lastUpdate  = getTime();
 
+    // FIX: use logical && so WAITFORSERIAL acts as a guard
     while (!stdio_usb_connected() && WAITFORSERIAL) {
         sleep_ms(10);  // Wait for USB host to open the port
     }
@@ -40,7 +41,10 @@ int main()
     debug.printHelp();
 
     KeyBoard* keyboard = new KeyBoard();
+
+    // NEW: make the manager local to main (no header-defined globals)
     ScreenManager screenMgr;
+    // NEW: demo-specific bindings & registrations live in ui_demo_impl.cpp
 
     i2c_common::bind(screenMgr);
     i2c_common::setKeyboard(*keyboard);   
@@ -52,9 +56,10 @@ int main()
     vs.declareU32(VSIDs::K_SYS_STATUS, 0);
     vs.declareU32(VSIDs::K_SYS_EPOCH,  0);
     vs.declareU32(VSIDs::K_ACTIVE_SCREEN, static_cast<uint32_t>(ScreenEnum::MENUSCREEN));
-    vs.declareU32(VSIDs::K_UI_COMMIT,  0);   // required so Core-1 can see user commits
-    vs.declareInt (VKey(ValueCat::Widget, SID_TEST, 2), 0);   // Edit default (any)
-    vs.declareBool(VKey(ValueCat::Widget, SID_TEST, 3), 0); // Button default (any)
+    vs.declareU32(VSIDs::K_UI_COMMIT,  0);   // ← required so Core-1 can see user commits
+    vs.declareInt (VKey(ValueCat::Widget, SID_TEST, 2), 50);   // Edit default (any)
+    vs.declareBool(VKey(ValueCat::Widget, SID_TEST, 3), true); // Button default (any)
+    // Freeze once
     (void)vs.freeze();
 
     // 2) Seed SYS_STATUS: VS_FROZEN + PROTO + EPOCH
@@ -121,6 +126,7 @@ int main()
             last_s = scur; 
         }
 
+
         debug.poll();
         keyboard->checkKeyState(&screenMgr);
         screenMgr.update(deltaTimeMS);
@@ -130,7 +136,6 @@ int main()
             screenMgr.draw(display);
             display->update();
             screenMgr.setRefreshRect(Rect2(0,0,0,0));
-            //sleep_ms(20);
         } else {
             sleep_ms(20);
         }

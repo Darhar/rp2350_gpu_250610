@@ -1,14 +1,32 @@
 #include "testscreen.h"
+#include "display.h"
+#include "edit.h"
+#include "button.h"
+#include "menu.h"
+#include "debug.h"
 
-TestScreen::TestScreen(ScreenManager& mgr) : Screen(mgr, ScreenEnum::TESTSCREEN){
+void TestScreen::onUpdate(uint16_t deltaTimeMS) {
+    duration += deltaTimeMS;
+    accDeltaTimeMS += deltaTimeMS;
+    if (accDeltaTimeMS > 200) {
+        // your per-screen logic
+        accDeltaTimeMS = 0;
+    }
+}
+
+
+TestScreen::TestScreen(ScreenManager& mgr)
+: Screen(mgr, ScreenEnum::TESTSCREEN)
+{
     TRACE("");
     seedConfig();
-    seedState();
-    rebuildFromDescriptor();
-    title =  "Test Screen";
-    duration=0; 
-    funkyV16->setClearSpace(true);
-    refresh=Rect2(0,0,158,64);
+    // If you still use legacy state seeding, keep this; otherwise remove.
+    // seedState(mgr);
+    rebuildFromDescriptor(mgr);   // or rebuildFromDescriptor(); if you added the no-arg forwarder
+    title = "Test Screen";
+    duration = 0;
+    // funkyV16->setClearSpace(true);  // if you still need this line
+    refresh = Rect2(0,0,158,64);
 }
 
 TestScreen::~TestScreen() {
@@ -17,14 +35,16 @@ TestScreen::~TestScreen() {
     }
 }
 
-void TestScreen::update(uint16_t deltaTimeMS) {
-    duration += deltaTimeMS;
-    accDeltaTimeMS += deltaTimeMS;
-    if(accDeltaTimeMS>200){}
-}
 
 void TestScreen::draw(Display* disp) {
-    TRACE_CAT(UI,"selectedIndex:%d, type:%d",selectedIndex,widgets[selectedIndex]->getWidgetType());
+
+
+int typeVal = (selectedIndex >= 0 && selectedIndex < (int)widgets.size())
+                ? static_cast<int>(widgets[selectedIndex]->getWidgetType())
+                : -1;
+
+TRACE_CAT(UI, "selectedIndex:%d, type:%d", selectedIndex, typeVal);
+
     disp->setInverted(false);
     drawWidgets(disp);
 }
@@ -45,10 +65,10 @@ void TestScreen::seedConfig() {
         WidgetConfig{
             WidgetType::Edit,
             2,
-            "Volume",
+            "Count",
             0, 12, 80, 12,
             true,
-            50, 0, 100,  // initialValue, minValue, maxValue
+            55, 0, 100,  // initialValue, minValue, maxValue
             false, "", "" // irrelevant Button fields        
         } 
     );  
@@ -56,12 +76,12 @@ void TestScreen::seedConfig() {
         WidgetConfig{
             WidgetType::Button,
             3,
-            "but2",      // label
+            "Direct",      // label
             0, 26, 80, 12,
             true,        // selectable
             0, 0, 0,     // irrelevant Edit fields
             true,        // toggleState
-            "ON", "OFF"           
+            "Up", "Down"           
         } 
     );        
 }
@@ -121,7 +141,7 @@ int TestScreen::keyPressed(uint8_t key) {
     }
   
     else if(key == KEY_BACK){
-        return encodeKeyReturn(KeyReturn::SCRSELECT, ScreenEnum::MENUSCREEN);
+        return encodeKeyReturn(KeyReturn::SCRSELECT, static_cast<uint8_t>(ScreenEnum::MENUSCREEN));
     }
     return 0;
 }

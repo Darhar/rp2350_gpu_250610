@@ -17,11 +17,13 @@ struct ScreenDescriptor {
 };
 
 class ScreenManager {
-
+    uint16_t buildingSid_ = 0xFFFF; // invalid means “not building”
     public:
         ScreenManager();
         ~ScreenManager();
-        Widget* createWidgetFromConfigAndState( const WidgetConfig& c, WidgetState* st);
+        Widget* createWidgetFromConfigAndState(const WidgetConfig& c,
+                                            uint16_t sid,
+                                            WidgetState* st /*unused*/);
         auto& getConfig(ScreenEnum id) { return configs[id]; }
         auto& getState(ScreenEnum id)  { return states[id];  }
         void registerScreen(ScreenEnum id, ScreenFactoryFunc factory);
@@ -39,7 +41,17 @@ class ScreenManager {
         void setRefreshRect(Rect2 refRect);  
         void disableRefresh(); 
         bool needRefresh();
+        // Declare VS keys for a single screen. If ensureConfig=true and the config
+        // is empty, we temporarily build the screen to let it seed its config.
+        void declareWidgetKeysFor(ScreenEnum id, bool ensureConfig = true);
 
+        // Declare VS keys for all registered screens.
+        void declareWidgetKeysForAll(bool ensureConfig = true);
+
+        // (Optional convenience) declare for the current active screen only.
+        void declareWidgetKeysForActive();
+        void beginWidgetBuild(uint16_t sid) { buildingSid_ = sid; }
+        void endWidgetBuild()               { buildingSid_ = 0xFFFF; }        
     private:
         std::map<ScreenEnum, ScreenFactoryFunc> screenObjects_;  // instance registry
         // per‐screen lists, keyed by screenId:

@@ -21,7 +21,8 @@ class Menu : public Widget {
             TRACE_CAT(UI,"selectedMenuItem:%d",selectedMenuItem);
             return selectedMenuItem;
         }        
-
+        void setValue(int idx);
+        
     private:
         std::vector<std::string> items;
         int itemCount;

@@ -12,7 +12,7 @@ std::vector<std::string> menuA
 SettingsScreen::SettingsScreen(ScreenManager& mgr) : Screen(mgr, ScreenEnum::SETTINGSSCREEN){
     TRACE("");
     seedConfig();
-    seedState();
+    //seedState();
     rebuildFromDescriptor();
     funkyV16->setClearSpace(true);
     title =  "Settings Screen";
@@ -26,7 +26,7 @@ SettingsScreen::~SettingsScreen() {
     }    
 }
 
-void SettingsScreen::update(uint16_t deltaTimeMS) {}
+void SettingsScreen::onUpdate(uint16_t deltaTimeMS) {}
 
 void SettingsScreen::draw(Display *disp) {
     TRACE_CAT(UI,"selectedIndex:%d, type:%d",selectedIndex,widgets[selectedIndex]->getWidgetType());
@@ -56,7 +56,7 @@ int SettingsScreen::keyPressed(uint8_t key) {
     TRACE_CAT(KEY,"selectedIndex:%d, type:%d",selectedIndex,widgets[selectedIndex]->getWidgetType());
 
     if(key == KEY_BACK)
-        return encodeKeyReturn(KeyReturn::SCRSELECT, ScreenEnum::MENUSCREEN);
+        return encodeKeyReturn(KeyReturn::SCRSELECT, static_cast<uint8_t>(ScreenEnum::MENUSCREEN));
 
     else if (key == KEY_UP || key == KEY_DOWN) {
         if (widgets.empty()) return 0;

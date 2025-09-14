@@ -7,6 +7,7 @@
 #include "hardware/i2c.h"
 #include <pico/i2c_slave.h>
 #include "debug.h"
+#include "common.h"
 
 namespace i2c_common {
 
@@ -90,7 +91,8 @@ namespace i2c_common {
 
                     if (useActive) {
                         if (auto* scr = g_mgr->getActiveScreen()) {
-                            screenId = scr->screenId;
+                            screenId = util::to_screen_id_6(scr->screenId);
+                           // screenId = scr->screenId;
                         }
                     }
 

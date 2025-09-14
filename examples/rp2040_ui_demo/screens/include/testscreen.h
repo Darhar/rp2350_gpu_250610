@@ -10,18 +10,23 @@
 class TestScreen : public Screen
 {
 	public:
-        TestScreen(ScreenManager& mgr);
+		explicit TestScreen(ScreenManager& mgr);   // <- declaration only (no body)
 		~TestScreen();
 
-		void update(uint16_t deltaTimeMS);
-		void draw(Display *display);
+		void draw(Display *display) override;
 		int keyPressed(uint8_t key);
 		int keyReleased(uint8_t key);
 		int keyDown(uint8_t key);
 		
 	private:
-		uint16_t duration, lastTime,accDeltaTimeMS;
+		uint32_t duration = 0;
+		uint32_t accDeltaTimeMS = 0;
+		uint16_t lastTime;
 		std::string title;
 		ScreenEnum     scrEnum;
 		void seedConfig();
+
+	protected:
+		// Option B: rename old update(...) override to onUpdate(...)
+		void onUpdate(uint16_t deltaTimeMS) override;
 };

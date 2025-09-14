@@ -1,5 +1,6 @@
 #include "common.h"
 
+
 Image *logoSprite = new Image(
     Size2(logoSpriteWidth, logoSpriteHeight), 
     logoSpriteColorCount, 
@@ -42,7 +43,6 @@ Image *ariel5x8= new Image(
     ariel5x8_ref,
     0
 );
-
 
 timetype getTime() {
     timetype now;

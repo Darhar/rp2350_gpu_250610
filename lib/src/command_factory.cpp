@@ -23,8 +23,9 @@ i2cObj* createCommandObject(
         case i2cCmnds::i2c_vs_get: return new VsGetValue(data, len);
         case i2cCmnds::i2c_dirty_summary: return new DirtySummary(&screenMgr, keyboard, data, len);
         case i2cCmnds::i2c_dirty_bank:   return new DirtyBank(data, len);
-        case i2cCmnds::i2c_changes_since: return new ChangesSince(data, len);
+        //case i2cCmnds::i2c_changes_since: return new ChangesSince(data, len);
         case i2cCmnds::i2c_vs_status: return new VsStatus(data, len);
+        case i2cCmnds::i2c_dirty_clear_all: return new DirtyClearAll(&screenMgr, keyboard, data, len);
 
         default: return nullptr;
     }

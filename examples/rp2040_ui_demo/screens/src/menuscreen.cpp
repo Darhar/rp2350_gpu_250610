@@ -18,11 +18,14 @@ MenuScreen::MenuScreen(ScreenManager& mgr) : Screen(mgr, ScreenEnum::MENUSCREEN)
 
 MenuScreen::~MenuScreen() {}
 
-void MenuScreen::update(uint16_t deltaTimeMS) {
+void MenuScreen::onUpdate(uint16_t deltaTimeMS) {
+
     duration += deltaTimeMS;
     accDeltaTimeMS += deltaTimeMS;
-  
+    //isAnimating = false; 
+
     if(accDeltaTimeMS>200){    
+
         if(isAnimating) {
             animationCounter +=4;
             if(animationCounter > menuItemGap) {
@@ -43,7 +46,7 @@ void MenuScreen::draw(Display *display) {
 }
 
 int MenuScreen::keyPressed(uint8_t key) {
-    TRACE_CAT(KEY,"");
+    TRACE_CAT(KEY,"key:%d, animating:%d",key,isAnimating);
     if(isAnimating)
         return 0;
 

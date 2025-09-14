@@ -15,6 +15,9 @@ public:
 
     void toggle();
     bool getState() const { return state; }
+    // NEW: setter so screens can sync from ValueStore
+    void setState(bool on);
+
     const std::string& getCaption() const;
     void draw(Display* display) const override;
 

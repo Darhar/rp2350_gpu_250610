@@ -870,3 +870,128 @@ store values phase A2
 store values phase A3
 -------250831_4 ----
 store values phase A5
+
+use the ValueStore as the authoritative state ledger, and use commands for events/one-shots/transaction boundaries/low-latency hints. 
+The two complement each other rather than compete.
+
+Here’s how I’d split responsibilities and why.
+
+When to use the ValueStore (VS)
+Use VS for anything that is:
+    Durable, observable state that both sides should agree on (and can read any time).
+    Idempotent (setting the same value twice is fine).
+    Bindable to the UI (widgets), firmware behaviors, or policy.
+
+Examples:
+    UI widget values (sliders, toggles, menu selections)
+    Keyboard snapshot (pressedMask), LED mask, audio volume (not “play”; see below)
+    Modes / flags / system config
+    “Active screen”, “focused widget” (authoritative UI plane)
+    Sensor readings and derived values
+
+Key point: 
+Core0 (slave) doesn’t need to “poll” VS for master-originated changes. 
+Your I²C vs_set handler is already on the hot path—after writing VS it can react immediately or enqueue a lightweight “kick” for the main loop. 
+Polling VS is only needed for third-party producers (UI, timers, sensors) that change values outside the I²C handler; 
+and even then we made it efficient with A1–A6 (any-dirty, dirty banks, changes-since ring, per-slot status).
+
+When to use Commands 
+Use commands when the operation is:
+    A one-shot side effect (not a steady value), or
+    Needs a transaction boundary / “commit” semantics, or
+    Requires tight latency notification semantics, or
+    Transfers bulk/streamed data that doesn’t belong as a single 32-bit slot.
+
+Examples:
+    “Play beep”, “start haptic pulse”, “flash LED pattern for 200 ms”
+    “Save settings to flash”, “factory reset”, “reboot”
+    “Load asset block #N”, “upload font chunk”
+    “Apply now” / “Commit group” (after writing a bunch of VS keys)
+    Protocol/telemetry: ack, dirty_summary, dirty_bank, changes_since, vs_status, dirty_clear_all
+
+Pattern that works well (hybrid)
+State changes: always go through VS so everyone converges on the same truth.
+    Master writes vs_set(...) → I²C handler on Core0 updates VS and may trigger a reaction (optional).
+    UI changes a widget → writes VS; master learns via changes_since or a cheap ack→dirty_summary→dirty_bank pass.
+
+Immediate reactions: don’t poll VS on Core0 for master-originated changes.
+    In the i2c_vs_set object, after updating VS, you can:
+    set a tiny subsystem kick flag (atomic bool) that the main loop checks next tick, or
+    push the slot index into the “changes-since” ring you already have and let a central “watcher” dispatch quickly, or
+    for truly trivial actions (e.g., K_ACTIVE_SCREEN), call the apply helper (guarded) right there.
+
+Low-latency notice for Core1: the master is bus-initiator, so it can’t be “interrupted” by the slave.
+That’s why we built A1–A6:
+    ACK bit tells you “anything changed”.
+    Dirty summary + dirty bank fetch exactly what changed, quickly.
+    Changes-since ring is the efficient path for sparse updates (no sweeping).
+    Poll at 10–50 ms; payloads are tiny, CPU cost negligible.
+
+Transaction groups (optional but handy):
+    Master writes multiple keys (e.g., 10 volume bands) and then sends a commit command or bumps a K_TXN_SEQ VS key last.
+    Core0 only applies the group when it sees the commit/seq change (prevents flicker and half-applied states).
+
+Ownership/lease (optional):
+    If you ever need to temporarily prefer master input over UI, add a K_OWNER with an expiry 
+    timestamp; UI checks before committing and either defers or negotiates.
+
+Concrete mapping (cheat-sheet)
+Active Screen / Focus → VS (System(...) keys). Keep i2c_scrCng as a thin shim that just writes those keys.
+
+LEDs
+    LedMask → VS (durable).
+    “Blink pattern 500 ms” → command (i2c_led_blink {mask,duration,patternId}).
+
+Audio
+    Volume → VS.
+    “Play click” / “Start tone 1 kHz, 100 ms” → command.
+
+Keyboard
+    Snapshot (pressedMask) → VS.
+    Edges → your existing i2c_getKb (or also append to change ring if master wants edges).
+
+Config / Modes → VS (+ optional “commit” command if batches matter).
+
+Persistence → command (“save to flash”); the values come from VS.
+
+Addressing the “must poll VS” concern
+Slave/Core0: No. For master-writes, the slave is already in the I²C receive handler; 
+    it can react instantly after updating VS. Polling is only for changes originating from elsewhere (UI/sensors), 
+    where your dirty tracking makes polling extremely cheap and targeted.
+    Master/Core1: Because it’s the bus master, it does poll—but you’ve already optimized that path (ACK→Summary/Bank or changes_since). 
+    It’s a few bytes every 10–50 ms; practically free.
+
+Optional niceties (if you want even snappier behavior)
+    Add a FLAG_NOTIFY bit in your vs_set header. If set, the slave can prioritize that key in its watcher pipeline (or run the reaction immediately). 
+    Same effect as above, just explicit.
+    A batch vs_set command to write N slots in one I²C transaction, then a single “commit” command. 
+    Useful when you want atomic appearance from the UI’s perspective.
+
+Bottom line:
+    Put truth into the ValueStore (so everything is observable, persistent, and consistent).
+    Use commands for events, commits, and telemetry.
+    On the slave, react to master-writes immediately in the I²C handler (or a one-tick kick), so there’s no “polling delay” worry.
+    On the master, rely on the ACK/dirty/ring flow for efficient discovery of UI-originated changes.
+
+-------250806_1 _---
+default widget values from VS
+VS value updating via widgets
+
+--- Things to do --
+ in core 1 need to use a shared file so both cores use the same indexes, like the screen names (ScreenEnum::TESTSCREEN)
+
+ // shared ids.hpp
+inline constexpr uint16_t to_screen_id_6(ScreenEnum e) {
+    return static_cast<uint16_t>(static_cast<uint16_t>(e) & 0x3F); // or your exact macro
+}
+// Core-1:
+static constexpr uint16_t SID_TEST = to_screen_id_6(ScreenEnum::TESTSCREEN);
+
+-- 250911 --
+all working correctly, need to remove versions and ring buffer and add lastCHangeWriter
+ -- 250914 --
+ Everything working correctly,
+ no version or ring buffer in value store
+ menu screen navigating correctly
+ animations working
+ all core 0 and core 1 demo working

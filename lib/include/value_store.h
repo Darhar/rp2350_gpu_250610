@@ -10,9 +10,20 @@
 #include <atomic>
 #include <functional> // (usually pulled in via <unordered_map>, but explicit is fine)
 #include <array>
+#include "value_store.h"          // ⟵ add this so ValueKey/ValueCat/VKey are visible
+#include <memory>   // for std::unique_ptr
 // -------------------------------
 // Addressing / typing
 // -------------------------------
+
+enum class VsOrigin : uint8_t {
+    Unknown   = 0,   // default
+    UI_C0     = 1,   // Core-0 (UI/slave) local writes (e.g., user commit)
+    MASTER_C1 = 2,   // Core-1 (master) writes via I²C
+    // Reserve room for more writers/slaves/hosts:
+    EXT_BASE  = 16,  // 16..127 external writer IDs if you ever need them
+};
+
 enum class ValueCat : uint8_t {
     Widget  = 0,  // (a=screenId, b=widgetId) default auto-bind
     Keyboard= 1,
@@ -27,7 +38,6 @@ enum class ValueType : uint8_t {
     Int  = 2,   // int32_t payload
     U32  = 3    // uint32_t payload
 };
-
 
 /*
 const and noexcept appear together in a member function declaration means 
@@ -98,18 +108,34 @@ class ValueStore {
         bool setInt (ValueKey key, int  v) noexcept;
         bool setU32 (ValueKey key, uint32_t v) noexcept;
 
+// new: origin-aware setters
+bool setBoolFrom(ValueKey key, bool v, uint8_t origin) noexcept;
+bool setIntFrom (ValueKey key, int  v, uint8_t origin) noexcept;
+bool setU32From (ValueKey key, uint32_t v, uint8_t origin) noexcept;
+
+
+// Convenience (cat,a,b) overloads that forward to the ValueKey versions
+inline bool setBool(ValueCat c, uint16_t a, uint16_t b, bool v) noexcept {
+    return setBool(VKey(c,a,b), v);
+}
+inline bool setInt(ValueCat c, uint16_t a, uint16_t b, int v) noexcept {
+    return setInt(VKey(c,a,b), v);
+}
+inline bool setU32(ValueCat c, uint16_t a, uint16_t b, uint32_t v) noexcept {
+    return setU32(VKey(c,a,b), v);
+}
+        
+
         std::optional<bool>     getBool(ValueKey key) const noexcept;
         std::optional<int>      getInt (ValueKey key) const noexcept;
         std::optional<uint32_t> getU32 (ValueKey key) const noexcept;
 
-        // Overloads with (cat,a,b) for convenience
-        inline bool setBool(ValueCat c, uint16_t a, uint16_t b, bool v)      noexcept { return setBool(VKey(c,a,b), v); }
-        inline bool setInt (ValueCat c, uint16_t a, uint16_t b, int v)       noexcept { return setInt (VKey(c,a,b), v); }
-        inline bool setU32 (ValueCat c, uint16_t a, uint16_t b, uint32_t v)  noexcept { return setU32(VKey(c,a,b), v); }
-
         inline std::optional<bool>     getBool(ValueCat c, uint16_t a, uint16_t b) const noexcept { return getBool(VKey(c,a,b)); }
         inline std::optional<int>      getInt (ValueCat c, uint16_t a, uint16_t b) const noexcept { return getInt (VKey(c,a,b)); }
         inline std::optional<uint32_t> getU32 (ValueCat c, uint16_t a, uint16_t b) const noexcept { return getU32(VKey(c,a,b)); }
+
+
+
 
         std::optional<uint32_t> firstDirtyBank() const noexcept;
         uint32_t seq() const noexcept { return seq_.load(std::memory_order_acquire); }      
@@ -134,7 +160,15 @@ class ValueStore {
 
         // Clear just this slot’s dirty bit (and global bank bit if that bank becomes empty)
         bool clearDirty(ValueKey key) noexcept;
+        void clearAllDirty() noexcept;
 
+
+
+
+    // New: query the last writer id for a key (0 if unknown / not found)
+    std::optional<uint8_t> lastWriterOf(ValueKey key) const noexcept;
+    
+    
     private:
         // Storage slot — 32-bit atomic raw payload for lock-free access
         struct Slot {
@@ -202,22 +236,28 @@ class ValueStore {
         static inline bool     from_raw_bool(uint32_t r) noexcept { return (r & 1u) != 0; }
         static inline int      from_raw_int (uint32_t r) noexcept { return static_cast<int32_t>(r); }
         static inline uint32_t from_raw_u32 (uint32_t r) noexcept { return r; }
+        // was: std::vector<std::atomic<uint8_t>> lastWriter_;
+        std::unique_ptr<std::atomic<uint8_t>[]> lastWriter_;
+        std::size_t lastWriterCount_ = 0;
 
         // ---- A4 ring buffer (power-of-2) ----
-        static constexpr uint32_t RING_LG2  = 7;                 // 128 entries
-        static constexpr uint32_t RING_SIZE = 1u << RING_LG2;
-        static constexpr uint32_t RING_MASK = RING_SIZE - 1;
+        //static constexpr uint32_t RING_LG2  = 7;                 // 128 entries
+        //static constexpr uint32_t RING_SIZE = 1u << RING_LG2;
+        //static constexpr uint32_t RING_MASK = RING_SIZE - 1;
 
         // Internal head used by writers to reserve the next slot before publishing
-        std::atomic<uint32_t>   ringHead_{0};
-        std::array<std::atomic<uint16_t>, RING_SIZE> ring_{};
+        //std::atomic<uint32_t>   ringHead_{0};
+        //std::array<std::atomic<uint16_t>, RING_SIZE> ring_{};
 
         // Record a change: write ring slot, then publish new seq
+        /*
         inline void recordChange(uint32_t slotIdx) noexcept {
             const uint32_t s = ringHead_.fetch_add(1, std::memory_order_acq_rel) + 1u;
             ring_[s & RING_MASK].store(static_cast<uint16_t>(slotIdx), std::memory_order_release);
             seq_.store(s, std::memory_order_release); // publish after entry is written
         }
+        
+
 
         struct Version {
             std::atomic<uint32_t> v{0};
@@ -231,7 +271,7 @@ class ValueStore {
         };
 
         std::vector<Version> versions_;  // one counter per slot
-
+        */
         inline bool clearSlotDirty(uint32_t slotIdx) noexcept {
             const uint32_t bank = slotIdx >> 5;
             const uint32_t bit  = slotIdx & 31;

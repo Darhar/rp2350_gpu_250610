@@ -26,7 +26,7 @@ public:
     MenuScreen(ScreenManager& mgr);
     ~MenuScreen();
 
-    void update(uint16_t deltaTimeMS);
+    void onUpdate(uint16_t deltaTimeMS);
     void draw(Display *display);
     int keyPressed(uint8_t key);
     int keyReleased(uint8_t key);

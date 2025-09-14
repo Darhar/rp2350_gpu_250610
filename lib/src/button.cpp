@@ -21,7 +21,12 @@ Button::Button(const std::string& label,
     TRACE_CAT(UI,"buttSize w,h:%d,%d buttonPos x,y:%d,%d butRect w,h:%d,%d",buttSize.w,buttSize.h,buttonPos.x,buttonPos.y,butRect.w,butRect.h);
 
 }
-
+void Button::setState(bool on) {
+    if (state == on) return;
+    state   = on;
+    caption = state ? captionOn : captionOff;
+    // (optional) trigger redraw upstream if you have a mechanism
+}
 void Button::toggle() {
     state = !state;
     caption = state ? captionOn : captionOff;

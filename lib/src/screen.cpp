@@ -4,6 +4,26 @@
 #include "menu.h"
 #include "edit.h"
 #include "button.h"
+#include "value_store.h"
+#include "sys_status.hpp"
+
+#include <climits>   // for INT_MIN
+// --- OPTIONAL knobs for the base update’s VS→widget sync ---
+#ifndef VS_WIDGET_POLL_ENABLE
+    #define VS_WIDGET_POLL_ENABLE 1    // set to 0 to disable
+#endif
+
+#ifndef VS_WIDGET_POLL_MS
+    #define VS_WIDGET_POLL_MS 100      // poll ~10 Hz
+#endif
+
+#if !defined(VS_WIDGET_POLL_LOG)
+    #define VS_WIDGET_POLL_LOG 1
+#endif
+
+#ifndef VS_OVERRIDE_COOLDOWN_MS
+    #define VS_OVERRIDE_COOLDOWN_MS 600   // user override window after commit
+#endif
 
 void Screen::addWidget(Widget* widg, uint32_t id) {
     TRACE_CAT(UI,"id:%d",id);
@@ -44,21 +64,23 @@ void Screen::rebuildFromDescriptor(ScreenManager& mgr) {
     auto& cfgs = mgr.getConfig(screenId);
     auto& sts  = mgr.getState(screenId);
 
+    const uint16_t sid = static_cast<uint16_t>(screenId);
+
     for (auto& c : cfgs) {
         auto it = std::find_if(sts.begin(), sts.end(),
             [&](auto& s){ return s.widgetId == c.widgetId; });
         WidgetState* state = (it != sts.end()) ? &*it : nullptr;
 
-        Widget* w = mgr.createWidgetFromConfigAndState(c, state);
+        // PASS sid EXPLICITLY
+        Widget* w = mgr.createWidgetFromConfigAndState(c, sid, state);
         if (w) addWidget(w, c.widgetId);
     }
 
-    // ensure something is selected if possible
     ensureSelection();
-
     rebuilding = false;
-    refresh = Rect2(0,0,158,64); // redraw once, after we’re fully built
+    refresh = Rect2(0,0,158,64);
 }
+
 
 static inline bool needsState(const WidgetConfig& c) {
     switch (c.type) {
@@ -113,46 +135,223 @@ void Screen::seedState(ScreenManager& mgr) {
         sts.end());
 }
 
+
+#include <climits>  // for INT_MIN
+
 void Screen::commitWidgetValues() {
-    auto& sts = mgr.getState(screenId);
+
+    printf("commitWidgetValues\n");
+    auto& vs = ValueStore::instance();
+    const uint16_t sid = static_cast<uint16_t>(screenId);
+
+    bool touched = false;  // track if anything changed
 
     for (auto* w : widgets) {
-        const uint32_t id = w->getWidgetId();
-
-        auto it = std::find_if(sts.begin(), sts.end(),
-            [&](auto& s){ return s.widgetId == id; });
-        if (it == sts.end()) {
-            TRACE_CAT(UI, "commit: no state entry for widgetId=%u", id);
-            continue;
-        }
+        const uint16_t wid = static_cast<uint16_t>(w->getWidgetId());
+        const ValueKey k   = VKey(ValueCat::Widget, sid, wid);
 
         switch (w->getWidgetType()) {
-          case WidgetType::Menu: {
-              const int v = static_cast<Menu*>(w)->getValue();
-              it->data = v; // store as int
-              TRACE_CAT(UI, "commit: Menu widgetId=%u value=%d", id, v);
-              w->setActive(false);
-              break;
-          }
-          case WidgetType::Edit:
-              TRACE_CAT(UI,"WidgetType::Edit:%d",static_cast<Edit*>(w)->getValue());
-              it->data = static_cast<Edit*>(w)->getValue();
-              break;
-          case WidgetType::Button:
-              TRACE_CAT(UI,"WidgetType::Button");
-              it->data = static_cast<Button*>(w)->getState();
-              break;
-          default: break;
+            case WidgetType::Menu: {
+                const int v = static_cast<Menu*>(w)->getValue();
+                (void)vs.setInt(k, v);
+                overrideUntil_[wid] = nowMs_ + VS_OVERRIDE_COOLDOWN_MS;  // let user “win” briefly
+                w->setActive(false);
+                touched = true;
+                break;
+            }
+
+            case WidgetType::Edit: {
+                const int v  = static_cast<Edit*>(w)->getValue();
+                const bool ok = vs.setInt(k, v);
+                const auto rb = vs.getInt(k).value_or(INT_MIN);
+                printf("[COMMIT→VS] sid=%u wid=%u v=%d ok=%d readback=%ld\n",
+                       (unsigned)sid, (unsigned)wid, v, (int)ok, (long)rb);
+
+                overrideUntil_[wid] = nowMs_ + VS_OVERRIDE_COOLDOWN_MS;
+                //touched = true;
+                break;
+            }
+
+            case WidgetType::Button: {
+                const bool v = static_cast<Button*>(w)->getState();
+                (void)vs.setBool(k, v);
+                overrideUntil_[wid] = nowMs_ + VS_OVERRIDE_COOLDOWN_MS;
+                //touched = true;
+                break;
+            }
+
+            default:
+                break;
         }
     }
-  for (auto& s : sts) {
-      if (auto p = std::get_if<int>(&s.data))
-          TRACE_CAT(UI, "state: id=%u int=%d", s.widgetId, *p);
-      else if (auto q = std::get_if<bool>(&s.data))
-          TRACE_CAT(UI, "state: id=%u bool=%d", s.widgetId, *q);
-      else
-          TRACE_CAT(UI, "state: id=%u <monostate>", s.widgetId);
-  }    
+
+    // IMPORTANT: bump AFTER all writes so Core-1 adopts the committed values
+    static uint32_t uiCommit = 0;  // local monotonic bump on Core-0
+    printf("send commit\n");
+    (void)vs.setU32(VSIDs::K_UI_COMMIT, ++uiCommit);
+    const auto commitVal=vs.getU32(VSIDs::K_UI_COMMIT);
+    printf("K_UI_COMMIT:%d",commitVal);
 }
 
 
+
+// Helper: apply a single widget’s VS value if its slot is dirty.
+// Clears the slot’s dirty bit after applying. Respects Edit::isActive() to avoid stomping user edits.
+static bool applyVSIfDirty(Widget* w,
+                           uint16_t screenId,
+                           uint32_t nowMs,
+                           const std::unordered_map<uint16_t, uint32_t>& overrideUntil) {
+    auto& vs = ValueStore::instance();
+    if (!vs.frozen()) return false;
+
+    const uint16_t wid = static_cast<uint16_t>(w->getWidgetId());
+
+    // Respect recent local commits (“user wins”)
+    if (auto it = overrideUntil.find(wid); it != overrideUntil.end()) {
+        if (nowMs < it->second) {
+            return false; // keep dirty set; UI hasn't “consumed” it yet
+        }
+    }
+
+    const ValueKey k = VKey(ValueCat::Widget, screenId, wid);
+    auto idx = vs.indexOf(k);
+    if (!idx || !vs.slotDirty(*idx)) return false;
+
+    bool changed = false;
+
+    switch (w->getWidgetType()) {
+        case WidgetType::Edit: {
+            auto* ed = static_cast<Edit*>(w);
+            if (!ed->isActive()) {
+                int cur = ed->getValue();
+                int v   = vs.getInt(k).value_or(cur);
+                if (v != cur) { ed->setValue(v); changed = true; }
+                else {
+                    // UI already matches store: consume dirty so ACK can drop
+                    (void)vs.clearDirty(k);
+                    return false;
+                }
+            } else {
+                return false; // don’t stomp active edits
+            }
+        } break;
+
+        case WidgetType::Button: {
+            auto* bt = static_cast<Button*>(w);
+            bool cur = bt->getState();
+            bool v   = vs.getBool(k).value_or(cur);
+            if (v != cur) { bt->toggle(); changed = true; }
+            else {
+                (void)vs.clearDirty(k);
+                return false;
+            }
+        } break;
+
+        case WidgetType::Menu: {
+            // Add a setter when available; until then, just consume if equal:
+            // int cur = static_cast<Menu*>(w)->getValue();
+            // int v   = vs.getInt(k).value_or(cur);
+            // if (v == cur) { (void)vs.clearDirty(k); return false; }
+            // else { static_cast<Menu*>(w)->setValue(v); changed = true; }
+            (void)vs.clearDirty(k);
+            return false;
+        } break;
+
+        default: {
+            (void)vs.clearDirty(k);
+            return false;
+        }
+    }
+
+    if (changed) (void)vs.clearDirty(k);
+    return changed;
+}
+// screen.cpp
+void Screen::syncWidgetsFromVSIfIdle() {
+    auto& vs = ValueStore::instance();
+    const uint16_t sid = static_cast<uint16_t>(screenId);
+
+    for (auto* w : widgets) {
+        if (!w) continue;
+        if (w->isActive()) continue;  // while editing, show local buffer
+
+        const uint16_t wid = static_cast<uint16_t>(w->getWidgetId());
+        // UI commit cooldown: skip VS adoption if still within grace window
+        auto it = overrideUntil_.find(wid);
+        if (it != overrideUntil_.end() && nowMs_ < it->second) continue;
+
+        const ValueKey k = VKey(ValueCat::Widget, sid, wid);
+        bool applied = false;
+
+        switch (w->getWidgetType()) {
+          case WidgetType::Edit: {
+              if (auto v = vs.getInt(k)) {
+                  Edit* e = static_cast<Edit*>(w);
+                  if (e->getValue() != *v) {
+                      e->setValue(*v);
+                      applied = true;
+                  }
+              }
+              break;
+          }
+          case WidgetType::Button: {
+              if (auto b = vs.getBool(k)) {
+                  Button* bt = static_cast<Button*>(w);
+                  if (bt->getState() != *b) {
+                      bt->setState(*b);
+                      applied = true;
+                  }
+              }
+              break;
+          }
+          case WidgetType::Menu: {
+              if (auto s = vs.getInt(k)) {
+                  Menu* m = static_cast<Menu*>(w);
+                  if (m->getValue() != *s) {
+                      m->setValue(*s);
+                      applied = true;
+                  }
+              }
+              break;
+          }
+          default: break;
+        }
+
+        if (applied) {
+            // simplest: redraw the whole screen
+            refresh = Rect2(0, 0, 158, 64);
+            // (or, if you prefer: union with this widget’s rect)
+        }
+    }
+}
+
+
+
+// Option B: base update always runs, then calls onUpdate().
+void Screen::update(uint16_t deltaTimeMS) {
+     nowMs_ += deltaTimeMS; 
+    syncWidgetsFromVSIfIdle();   // mirror VS for all non-active widgets
+    #if VS_WIDGET_POLL_ENABLE
+        vsPollTick_ += deltaTimeMS;
+        if (vsPollTick_ >= VS_WIDGET_POLL_MS) {
+            vsPollTick_ = 0;
+
+            auto& vs = ValueStore::instance();
+            if (vs.anyDirty()) {                          // ← new gate
+                bool any = false;
+                for (auto* w : widgets) {
+                    any |= applyVSIfDirty(w,
+                                        static_cast<uint16_t>(screenId),
+                                        nowMs_,
+                                        overrideUntil_);
+                }
+                if (any) {
+                    refresh = Rect2(0,0,158,64);
+                }
+            }
+        }
+    #endif
+
+    // Give the derived screen a turn
+    onUpdate(deltaTimeMS);
+}
